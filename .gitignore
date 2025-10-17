@@ -1,0 +1,20 @@
+# Data files
+data/
+
+# Python
+__pycache__/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.claude/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
