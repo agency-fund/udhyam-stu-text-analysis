@@ -18,27 +18,27 @@ print(messages.dtypes)
 print("\nSample session_id values:")
 print(messages['session_id'].head(10))
 
-# Parse session_id into datetime and conversation_id
+# Parse session_id into datetime and whatsapp_id
 def parse_session_id(session_id):
     """
-    Parse session_id string into datetime and conversation_id.
-    Expected format: "YYYY-MM-DD HH:MM:SS<conversation_id>"
+    Parse session_id string into datetime and whatsapp_id.
+    Expected format: "YYYY-MM-DD HH:MM:SS<whatsapp_id>"
     """
     session_id_str = str(session_id)
 
     # The datetime part is the first 19 characters: "YYYY-MM-DD HH:MM:SS"
     datetime_str = session_id_str[:19]
 
-    # The rest is the conversation_id
-    conversation_id = session_id_str[19:]
+    # The rest is the whatsapp_id
+    whatsapp_id = session_id_str[19:]
 
     # Convert datetime string to datetime object
     dt = pd.to_datetime(datetime_str, format='%Y-%m-%d %H:%M:%S')
 
-    return dt, conversation_id
+    return dt, whatsapp_id
 
 # Apply the parsing function
-messages[['datetime', 'conversation_id']] = messages['session_id'].apply(
+messages[['datetime', 'whatsapp_id']] = messages['session_id'].apply(
     lambda x: pd.Series(parse_session_id(x))
 )
 
@@ -56,8 +56,8 @@ messages = messages.rename(columns={
 # Remove cal_role column
 messages = messages.drop(columns=['cal_role'])
 
-# Reorder columns to put datetime and conversation_id first
-columns = ['datetime', 'conversation_id'] + [col for col in messages.columns if col not in ['datetime', 'conversation_id']]
+# Reorder columns to put datetime and whatsapp_id first
+columns = ['datetime', 'whatsapp_id'] + [col for col in messages.columns if col not in ['datetime', 'whatsapp_id']]
 messages = messages[columns]
 
 print("\n" + "="*80)
@@ -66,6 +66,11 @@ print("="*80)
 print("\nData shape:", messages.shape)
 print("\nColumn names:")
 print(messages.columns.tolist())
+
+# Save cleaned data
+cleaned_output_path = 'data/messages_cleaned.csv'
+messages.to_csv(cleaned_output_path, index=False)
+print(f"\nCleaned data saved to: {cleaned_output_path}")
 
 # ============================================================================
 # TRANSLATE USER MESSAGES TO ENGLISH
