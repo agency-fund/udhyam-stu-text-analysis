@@ -3,7 +3,7 @@ numpy
 matplotlib
 seaborn
 jupyter
-googletrans==4.0.0rc1
 openai
 python-dotenv
 tqdm
+snakemake

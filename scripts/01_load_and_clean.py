@@ -1,180 +1,94 @@
+"""Clean Udhyam raw chat transcripts and write a tidy CSV."""
+
+from __future__ import annotations
+
+import argparse
+import os
+from pathlib import Path
+from typing import Sequence, Tuple
+
 import pandas as pd
-from datetime import datetime
-from googletrans import Translator
-import time
-import re
 
-# Load the CSV file
-csv_path = '/Users/michaelfive/Library/CloudStorage/GoogleDrive-michael@agency.fund/My Drive/Work/Udhyam/Data/AI Help (Udhyam) student usage_Table - Sheet1.csv'
-messages = pd.read_csv(csv_path)
 
-print("Original data shape:", messages.shape)
-print("\nFirst few rows:")
-print(messages.head())
-print("\nColumn names:")
-print(messages.columns.tolist())
-print("\nData types:")
-print(messages.dtypes)
-print("\nSample session_id values:")
-print(messages['session_id'].head(10))
-
-# Parse session_id into datetime and whatsapp_id
-def parse_session_id(session_id):
-    """
-    Parse session_id string into datetime and whatsapp_id.
-    Expected format: "YYYY-MM-DD HH:MM:SS<whatsapp_id>"
-    """
-    session_id_str = str(session_id)
-
-    # The datetime part is the first 19 characters: "YYYY-MM-DD HH:MM:SS"
-    datetime_str = session_id_str[:19]
-
-    # The rest is the whatsapp_id
-    whatsapp_id = session_id_str[19:]
-
-    # Convert datetime string to datetime object
-    dt = pd.to_datetime(datetime_str, format='%Y-%m-%d %H:%M:%S')
-
-    return dt, whatsapp_id
-
-# Apply the parsing function
-messages[['datetime', 'whatsapp_id']] = messages['session_id'].apply(
-    lambda x: pd.Series(parse_session_id(x))
+DEFAULT_INPUT_PATH = os.getenv(
+    "UDHYAM_RAW_DATA_PATH",
+    "data/raw/AI Help (Udhyam) student usage_Table - Sheet1.csv",
 )
 
-# Remove session_id column
-messages = messages.drop(columns=['session_id'])
+DEFAULT_OUTPUT_PATH = "data/cleaned/messages_cleaned.csv"
 
-# Rename columns
-messages = messages.rename(columns={
-    'Question': 'user_msg',
-    'Category': 'user_msg_category',
-    'Response': 'ai_msg',
-    'translated_answer': 'ai_msg_en'
-})
 
-# Remove cal_role column
-messages = messages.drop(columns=['cal_role'])
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Clean Udhyam chat transcripts exported from Google Sheets."
+    )
+    parser.add_argument(
+        "--input",
+        default=DEFAULT_INPUT_PATH,
+        help="Path to the raw CSV export (defaults to UDHYAM_RAW_DATA_PATH or the bundled sample).",
+    )
+    parser.add_argument(
+        "--output",
+        default=DEFAULT_OUTPUT_PATH,
+        help="Where the cleaned CSV should be written (default: data/cleaned/messages_cleaned.csv).",
+    )
+    return parser.parse_args(argv)
 
-# Reorder columns to put datetime and whatsapp_id first
-columns = ['datetime', 'whatsapp_id'] + [col for col in messages.columns if col not in ['datetime', 'whatsapp_id']]
-messages = messages[columns]
 
-print("\n" + "="*80)
-print("AFTER BASIC CLEANING:")
-print("="*80)
-print("\nData shape:", messages.shape)
-print("\nColumn names:")
-print(messages.columns.tolist())
+def parse_session_id(session_id: str) -> Tuple[pd.Timestamp, str]:
+    session_id_str = str(session_id)
+    datetime_str = session_id_str[:19]
+    whatsapp_id = session_id_str[19:]
+    dt = pd.to_datetime(datetime_str, format="%Y-%m-%d %H:%M:%S", errors="coerce")
+    if pd.isna(dt):
+        raise ValueError(f"Could not parse datetime from session_id '{session_id}'")
+    return dt, whatsapp_id
 
-# Save cleaned data
-cleaned_output_path = 'data/messages_cleaned.csv'
-messages.to_csv(cleaned_output_path, index=False)
-print(f"\nCleaned data saved to: {cleaned_output_path}")
 
-# ============================================================================
-# TRANSLATE USER MESSAGES TO ENGLISH
-# ============================================================================
+def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    if "session_id" not in df.columns:
+        raise KeyError("Expected column 'session_id' in the raw export")
 
-print("\n" + "="*80)
-print("TRANSLATING USER MESSAGES TO ENGLISH...")
-print("="*80)
+    dt_series, whatsapp_series = zip(*df["session_id"].map(parse_session_id))
+    cleaned = df.copy()
+    cleaned["datetime"] = list(dt_series)
+    cleaned["whatsapp_id"] = list(whatsapp_series)
+    cleaned = cleaned.drop(columns=["session_id"], errors="ignore")
 
-translator = Translator()
+    rename_map = {
+        "Question": "user_msg",
+        "Category": "user_msg_category",
+        "Response": "ai_msg",
+        "translated_answer": "ai_msg_en",
+    }
+    cleaned = cleaned.rename(columns={k: v for k, v in rename_map.items() if k in cleaned.columns})
+    cleaned = cleaned.drop(columns=["cal_role"], errors="ignore")
 
-def is_likely_english(text):
-    """Quick check if text is likely in English already"""
-    if pd.isna(text) or text == '':
-        return True
+    # Move datetime/whatsapp_id to the front for readability
+    front_cols = ["datetime", "whatsapp_id"]
+    remaining = [col for col in cleaned.columns if col not in front_cols]
+    cleaned = cleaned[front_cols + remaining]
+    return cleaned
 
-    text_str = str(text).lower()
 
-    # If it's very short (<=3 chars), consider it English
-    if len(text_str) <= 3:
-        return True
+def ensure_parent_dir(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Check for non-Latin scripts (Devanagari for Hindi, Gurmukhi for Punjabi)
-    if re.search(r'[\u0900-\u097F\u0A00-\u0A7F]', text_str):
-        return False
 
-    # Check for common English words
-    common_english_words = {'the', 'is', 'are', 'was', 'were', 'ok', 'yes', 'no',
-                           'hello', 'hi', 'thank', 'please', 'can', 'will', 'how',
-                           'what', 'when', 'where', 'who', 'why', 'this', 'that'}
+def main(argv: Sequence[str] | None = None) -> None:
+    args = parse_args(argv)
+    input_path = Path(args.input).expanduser().resolve()
+    output_path = Path(args.output)
 
-    words = text_str.split()
-    if any(word in common_english_words for word in words):
-        return True
+    print(f"Loading raw data from {input_path}")
+    df = pd.read_csv(input_path)
+    print(f"Loaded {len(df):,} rows with columns: {df.columns.tolist()}")
 
-    # If it contains mostly Latin characters, assume English
-    latin_chars = sum(1 for c in text_str if ord(c) < 128)
-    if len(text_str) > 0 and latin_chars / len(text_str) > 0.8:
-        return True
+    cleaned = clean_dataframe(df)
+    ensure_parent_dir(output_path)
+    cleaned.to_csv(output_path, index=False)
+    print(f"Cleaned data written to {output_path}")
 
-    return False
 
-def translate_to_english(text):
-    """Translate text to English with error handling"""
-    if pd.isna(text) or text == '':
-        return ''
-
-    if is_likely_english(text):
-        return str(text)
-
-    try:
-        result = translator.translate(str(text), dest='en')
-        time.sleep(0.1)
-        return result.text
-    except Exception as e:
-        print(f"\nError translating: {text[:50]}... | Error: {e}")
-        return str(text)
-
-# Filter messages that need translation
-needs_translation = []
-already_english = []
-
-for i, text in enumerate(messages['user_msg']):
-    if is_likely_english(text):
-        already_english.append(i)
-    else:
-        needs_translation.append(i)
-
-print(f"Messages already in English: {len(already_english)}")
-print(f"Messages needing translation: {len(needs_translation)}")
-
-# Translate messages
-user_msg_en_list = [None] * len(messages)
-
-# Copy English messages as-is
-for idx in already_english:
-    user_msg_en_list[idx] = str(messages.iloc[idx]['user_msg'])
-
-# Translate non-English messages
-print("Translating non-English messages...")
-for i, idx in enumerate(needs_translation):
-    text = messages.iloc[idx]['user_msg']
-    translated = translate_to_english(text)
-    user_msg_en_list[idx] = translated
-
-    if (i + 1) % 50 == 0:
-        print(f"  Translated {i + 1}/{len(needs_translation)} messages")
-        time.sleep(2)
-
-# Add translated column next to user_msg
-messages.insert(messages.columns.get_loc('user_msg') + 1, 'user_msg_en', user_msg_en_list)
-
-print("\n" + "="*80)
-print("FINAL CLEANED DATA:")
-print("="*80)
-print("\nData shape:", messages.shape)
-print("\nColumn names:")
-print(messages.columns.tolist())
-print("\nFirst few rows:")
-print(messages.head(10))
-print("\nData types:")
-print(messages.dtypes)
-
-# Save final translated data
-output_path = 'data/messages_translated.csv'
-messages.to_csv(output_path, index=False)
-print(f"\nFinal data saved to: {output_path}")
+if __name__ == "__main__":
+    main()

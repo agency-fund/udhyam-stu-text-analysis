@@ -220,18 +220,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--input",
-        default="data/messages_cleaned.csv",
+        default="data/cleaned/messages_cleaned.csv",
         help="Path to the cleaned messages CSV file.",
     )
     parser.add_argument(
         "--output",
-        default="data/messages_translated_openai.csv",
+        default="data/cleaned/messages_translated.csv",
         help="Path where the translated CSV will be written.",
-    )
-    parser.add_argument(
-        "--report",
-        default="data/translation_cost_report.txt",
-        help="Path where the translation cost report will be written.",
     )
     parser.add_argument(
         "--model",
@@ -578,6 +573,7 @@ def main() -> None:
         f"Rows unchanged: {unchanged_rows} "
         f"({unchanged_rows / len(messages) * 100:.1f}%)"
     )
+    print(f"Non-empty inputs: {non_empty_inputs}")
     if reused_translations:
         print(f"Rows served from cache (no API call): {reused_translations}")
     if retry_candidates:
@@ -598,48 +594,7 @@ def main() -> None:
     messages.to_csv(args.output, index=False)
     print(f"\nTranslated data saved to: {args.output}")
 
-    cost_report = f"""
-OPENAI TRANSLATION COST REPORT
-{'=' * 80}
-
-Model: {args.model}
-Date: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-Dataset:
-- Total rows: {len(messages):,}
-- Non-empty inputs: {non_empty_inputs:,}
-- Unique API calls: {api_calls:,}
-
-Translation Outcomes:
-- Rows changed by translation: {translated_rows:,}
-- Rows unchanged: {unchanged_rows:,}
-- Rows served from cache (no API call): {reused_translations:,}
-- Additional translation attempts: {len(retry_candidates):,}
-- Successful retries: {successful_retries:,}
-- Failed retries: {len(failed_retries):,}
-
-Token Usage:
-- Input tokens: {total_input_tokens:,}
-- Output tokens: {total_output_tokens:,}
-- Total tokens: {total_input_tokens + total_output_tokens:,}
-
-Cost Breakdown:
-- Input cost: ${total_input_tokens / 1_000_000 * INPUT_COST_PER_1M:.4f}
-- Output cost: ${total_output_tokens / 1_000_000 * OUTPUT_COST_PER_1M:.4f}
-- Total cost: ${total_cost:.4f}
-- Average cost per API call: ${
-        total_cost / api_calls if api_calls else 0
-    :.6f}
-
-Pricing:
-- Input: ${INPUT_COST_PER_1M} per 1M tokens
-- Output: ${OUTPUT_COST_PER_1M} per 1M tokens
-"""
-
-    with open(args.report, "w") as file:
-        file.write(cost_report)
-
-    print(f"\nCost report saved to: {args.report}")
+    print("\nHint: track token usage above if you need manual cost records.")
 
 
 if __name__ == "__main__":
