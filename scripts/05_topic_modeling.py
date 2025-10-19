@@ -1,4 +1,7 @@
-"""Topic modeling for translated Udhyam chat messages using BERTopic."""
+"""Topic modeling for translated Udhyam chat messages using BERTopic.
+
+Messages are in English after translation from Hindi, Punjabi, and Hinglish.
+"""
 
 from __future__ import annotations
 
@@ -51,54 +54,41 @@ def ensure_output_dirs() -> None:
 
 
 def build_stopwords() -> list[str]:
+    """Build stopword list for English (messages translated from Hindi/Punjabi/Hinglish)."""
     ensure_stopwords()
-    spanish = set(stopwords.words("spanish"))
     english = set(stopwords.words("english"))
+
+    # Add common filler words and platform-specific terms
     extra = {
-        "pues",
-        "bueno",
-        "entonces",
-        "vale",
-        "oye",
-        "mira",
-        "osea",
         "eh",
         "ah",
         "uh",
         "mm",
         "mmm",
-        "aja",
-        "ajá",
-        "claro",
-        "verdad",
-        "nada",
-        "solo",
-        "tal",
-        "vez",
-        "asi",
-        "así",
-        "bien",
-        "mal",
-        "hay",
-        "que",
-        "qué",
-        "como",
-        "cómo",
-        "cuando",
-        "cuándo",
-        "donde",
-        "dónde",
-        "porque",
-        "porqué",
-        "hola",
+        "okay",
+        "ok",
+        "yeah",
+        "yes",
+        "no",
+        "thanks",
+        "thank",
+        "please",
+        "hello",
+        "hi",
+        "hey",
     }
-    return list(spanish | english | extra)
+    return list(english | extra)
 
 
 def create_topic_model(stop_words: list[str], min_topic_size: int) -> BERTopic:
+    """Create BERTopic model configured for English text.
+
+    Uses English language model since all messages are translated to English
+    from Hindi, Punjabi, and Hinglish.
+    """
     vectorizer_model = CountVectorizer(stop_words=stop_words, ngram_range=(1, 2), min_df=2)
     return BERTopic(
-        language="multilingual",
+        language="english",  # Changed from "multilingual" since data is English-only
         calculate_probabilities=False,
         vectorizer_model=vectorizer_model,
         min_topic_size=min_topic_size,
