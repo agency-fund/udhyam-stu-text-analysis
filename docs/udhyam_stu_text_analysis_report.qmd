@@ -1,22 +1,24 @@
 ---
 title: "Udhyam Student Text Analysis Report"
-date: last-modified
 author: "Udhyam Analytics"
+date: today
 format:
   html:
     toc: true
     toc-depth: 3
-    theme: cosmo
     code-fold: true
+    theme: cosmo
+    embed-resources: true
     fig-width: 10
     fig-height: 6
 execute:
-  echo: false
   warning: false
   message: false
+  echo: false
 ---
 
 ```{python}
+#| label: setup
 import json
 from pathlib import Path
 from textwrap import fill
@@ -24,7 +26,34 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-plt.style.use("seaborn-v0_8")
+from matplotlib import rcParams
+
+# Set professional theme
+sns.set_style("whitegrid")
+plt.style.use("seaborn-v0_8-darkgrid")
+
+# Define color palette
+COLOR_USER = "#3498DB"
+COLOR_AI = "#E67E22"
+COLOR_POSITIVE = "#2ECC71"
+COLOR_NEUTRAL = "#95A5A6"
+COLOR_NEGATIVE = "#E74C3C"
+COLOR_PRIMARY = "#2C3E50"
+
+# Configure matplotlib defaults
+rcParams['figure.facecolor'] = 'white'
+rcParams['axes.facecolor'] = 'white'
+rcParams['axes.edgecolor'] = '#E5E7EB'
+rcParams['axes.labelcolor'] = COLOR_PRIMARY
+rcParams['axes.titlesize'] = 16
+rcParams['axes.titleweight'] = 'bold'
+rcParams['axes.labelsize'] = 11
+rcParams['axes.labelweight'] = 'bold'
+rcParams['xtick.color'] = '#34495E'
+rcParams['ytick.color'] = '#34495E'
+rcParams['grid.color'] = '#E5E7EB'
+rcParams['grid.alpha'] = 0.6
+rcParams['text.color'] = COLOR_PRIMARY
 
 BASE = Path("../")
 
@@ -119,71 +148,184 @@ def cal_state_table():
 
 ``` 
 
-# Executive Summary
+# Overview
+
+This report analyzes student-AI interactions from the Udhyam learning platform. The analysis examines message patterns, sentiment, topics, and conversation dynamics to understand how students engage with the AI assistant.
 
 ```{python}
-summary_points = [
-    overview_sentence,
-    sentiment_user_sentence,
-    sentiment_ai_sentence,
-    "Key user topics:\n" + user_topic_sentence,
-    "Assistant response themes:\n" + assistant_topic_sentence,
+#| output: asis
+print(f"**Data Scope:** {overview_sentence}")
+```
+
+## Key Findings
+
+```{python}
+#| output: asis
+findings = [
+    f"**Sentiment Patterns (User):** {sentiment_user_sentence}",
+    f"**Sentiment Patterns (Assistant):** {sentiment_ai_sentence}",
+    f"**Key User Topics:**\n\n{user_topic_sentence}",
+    f"**Assistant Response Themes:**\n\n{assistant_topic_sentence}",
 ]
-print("\n\n".join(point for point in summary_points if point))
+for finding in findings:
+    if finding:
+        print(f"{finding}\n\n")
 ```
 
-# 1. Message Activity
+---
+
+# Part 1: Message Activity {.tabset}
+
+## 1.1 Daily Volume
 
 ```{python}
-fig, ax = plt.subplots()
+#| label: fig-daily-volume
+#| fig-cap: "Figure 1: Daily user message volume over time"
+fig, ax = plt.subplots(figsize=(10, 6))
 if not timeline_daily.empty:
-    sns.lineplot(data=timeline_daily, x="date", y="messages", marker="o", ax=ax)
-    ax.set_title("Daily User Message Volume")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Messages")
+    sns.lineplot(data=timeline_daily, x="date", y="messages", marker="o",
+                 color=COLOR_USER, linewidth=2.5, markersize=8, ax=ax)
+    ax.set_title("Daily User Message Volume", fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
+    ax.set_xlabel("Date", fontweight='bold', fontsize=11)
+    ax.set_ylabel("Number of Messages", fontweight='bold', fontsize=11)
     plt.xticks(rotation=45, ha="right")
+    ax.grid(True, alpha=0.3)
 else:
-    ax.text(0.5, 0.5, "No user message activity records", ha="center", va="center")
-fig.tight_layout()
+    ax.text(0.5, 0.5, "No user message activity records",
+            ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
+    ax.set_xticks([])
+    ax.set_yticks([])
+plt.tight_layout()
+plt.show()
 ```
 
+Daily message volume shows the temporal distribution of student engagement with the AI assistant.
+
+## 1.2 Hourly Distribution
+
 ```{python}
-fig, ax = plt.subplots()
+#| label: fig-hourly-distribution
+#| fig-cap: "Figure 2: Hourly distribution of user messages throughout the day"
+fig, ax = plt.subplots(figsize=(10, 6))
 if not timeline_hourly.empty:
-    sns.barplot(data=timeline_hourly, x="hour", y="messages", color="#3498DB", ax=ax)
-    ax.set_title("Hourly Distribution of User Messages")
-    ax.set_xlabel("Hour of day")
-    ax.set_ylabel("Messages")
+    sns.barplot(data=timeline_hourly, x="hour", y="messages",
+                color=COLOR_USER, alpha=0.8, ax=ax)
+    ax.set_title("Hourly Distribution of User Messages",
+                 fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
+    ax.set_xlabel("Hour of Day", fontweight='bold', fontsize=11)
+    ax.set_ylabel("Number of Messages", fontweight='bold', fontsize=11)
+    ax.grid(True, alpha=0.3, axis='y')
+
+    # Add value labels on bars
+    for container in ax.containers:
+        ax.bar_label(container, fontsize=9)
 else:
-    ax.text(0.5, 0.5, "No hourly data available", ha="center", va="center")
-fig.tight_layout()
+    ax.text(0.5, 0.5, "No hourly data available",
+            ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
+    ax.set_xticks([])
+    ax.set_yticks([])
+plt.tight_layout()
+plt.show()
 ```
 
+This distribution reveals when students are most active in using the platform throughout the day.
+
+## 1.3 Message Statistics
+
 ```{python}
-message_stats
+#| label: tbl-message-stats
+#| tbl-cap: "Table 1: Summary statistics for message activity"
+from IPython.display import display, Markdown
+
+if not message_stats.empty:
+    display(Markdown(message_stats.to_markdown(index=False)))
+else:
+    print("No message statistics available")
 ```
 
-# 2. CAL State Engagement
+---
+
+# Part 2: CAL State Engagement {.tabset}
+
+CAL (Conversational AI Learning) States represent different stages or contexts of student interactions with the AI assistant. This section analyzes which states generate the most engagement.
+
+## 2.1 State Distribution Table
 
 ```{python}
-cal_state_table()
+#| label: tbl-cal-state
+#| tbl-cap: "Table 2: CAL State distribution with message counts and percentages"
+from IPython.display import display, Markdown
+
+cal_table = cal_state_table()
+if not cal_table.empty:
+    # Format the table for better display
+    cal_display = cal_table.copy()
+    cal_display.columns = ['CAL State', 'Message Count', 'Share (%)']
+    cal_display['Share (%)'] = cal_display['Share (%)'].round(1)
+    display(Markdown(cal_display.to_markdown(index=False)))
+else:
+    print("No CAL state data available")
 ```
 
+## 2.2 Top CAL States Visualization
+
 ```{python}
-fig, ax = plt.subplots()
+#| label: fig-cal-states
+#| fig-cap: "Figure 3: Top 10 CAL states by message volume"
+fig, ax = plt.subplots(figsize=(10, 6))
 if not cal_state_counts.empty:
-    sns.barplot(data=cal_state_counts.head(10), x="message_count", y="cal_state", ax=ax, palette="Blues_d")
-    ax.set_title("Top CAL States by Message Volume")
-    ax.set_xlabel("Messages")
-    ax.set_ylabel("CAL State")
+    top_states = cal_state_counts.head(10)
+    bars = ax.barh(range(len(top_states)), top_states['message_count'],
+                   color=COLOR_USER, alpha=0.8)
+    ax.set_yticks(range(len(top_states)))
+    ax.set_yticklabels(top_states['cal_state'])
+    ax.set_title("Top CAL States by Message Volume",
+                 fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
+    ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=11)
+    ax.set_ylabel("CAL State", fontweight='bold', fontsize=11)
+    ax.grid(True, alpha=0.3, axis='x')
+
+    # Add value labels
+    for i, (idx, row) in enumerate(top_states.iterrows()):
+        ax.text(row['message_count'] + max(top_states['message_count']) * 0.01,
+                i, f"{row['message_count']:,}",
+                va='center', fontsize=9)
+
+    ax.invert_yaxis()
 else:
-    ax.text(0.5, 0.5, "No CAL state data available", ha="center", va="center")
-fig.tight_layout()
+    ax.text(0.5, 0.5, "No CAL state data available",
+            ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
+    ax.set_xticks([])
+    ax.set_yticks([])
+plt.tight_layout()
+plt.show()
 ```
 
-# 3. Sentiment Analysis
+The distribution shows which learning states students spend the most time in, indicating where the AI is most frequently engaged.
+
+---
+
+# Part 3: Sentiment Analysis {.tabset}
+
+Sentiment analysis examines the emotional tone of messages exchanged between students and the AI assistant. Understanding sentiment helps assess user satisfaction and the quality of AI responses.
+
+## Understanding Sentiment Analysis
+
+**What is being measured?**
+
+Messages are analyzed for emotional tone and classified into sentiment categories (typically Positive, Neutral, and Negative). This helps us understand:
+
+- **User sentiment**: How students feel when interacting with the AI
+- **AI sentiment**: Whether the AI maintains an appropriate, supportive tone
+- **Interaction quality**: The overall emotional dynamic of conversations
+
+## 3.1 Sentiment Distribution
 
 ```{python}
+#| label: tbl-sentiment-counts
+#| tbl-cap: "Table 3: Sentiment distribution by message role"
+from IPython.display import display, Markdown
+
 sentiment_long = pd.concat([
     sentiment_user.assign(role="user"),
     sentiment_ai.assign(role="assistant"),
@@ -192,52 +334,258 @@ sentiment_long = pd.concat([
 sentiment_counts = (
     sentiment_long.groupby(["role", "sentiment_label"]).size().reset_index(name="messages")
 )
-sentiment_counts
-```
 
-```{python}
-fig, ax = plt.subplots()
 if not sentiment_counts.empty:
-    sns.barplot(data=sentiment_counts, x="sentiment_label", y="messages", hue="role", ax=ax)
-    ax.set_title("Sentiment Distribution by Role")
-    ax.set_xlabel("Sentiment label")
-    ax.set_ylabel("Messages")
-    ax.legend(title="Role")
+    # Calculate percentages
+    sentiment_display = sentiment_counts.copy()
+    sentiment_display['percentage'] = sentiment_display.groupby('role')['messages'].transform(
+        lambda x: (x / x.sum() * 100).round(1)
+    )
+    sentiment_display.columns = ['Role', 'Sentiment', 'Count', 'Percentage (%)']
+    sentiment_display['Role'] = sentiment_display['Role'].str.capitalize()
+    display(Markdown(sentiment_display.to_markdown(index=False)))
 else:
-    ax.text(0.5, 0.5, "No sentiment records available", ha="center", va="center")
-fig.tight_layout()
+    print("No sentiment data available")
 ```
 
-```{python}
-sentiment_overview
-```
-
-# 4. Topic Highlights
+## 3.2 Sentiment Comparison
 
 ```{python}
-topic_keywords.sort_values(["message_role", "message_count"], ascending=[True, False])
-```
+#| label: fig-sentiment-comparison
+#| fig-cap: "Figure 4: Sentiment distribution comparison between user and AI messages"
+fig, ax = plt.subplots(figsize=(10, 6))
+if not sentiment_counts.empty:
+    # Map sentiment labels to colors
+    sentiment_colors = {
+        'Positive': COLOR_POSITIVE,
+        'Neutral': COLOR_NEUTRAL,
+        'Negative': COLOR_NEGATIVE,
+        'positive': COLOR_POSITIVE,
+        'neutral': COLOR_NEUTRAL,
+        'negative': COLOR_NEGATIVE
+    }
 
-```{python}
-fig, ax = plt.subplots()
-if not topic_keywords.empty:
-    top_topics = topic_keywords.groupby("message_role").head(10)
-    sns.barplot(data=top_topics, x="message_count", y="keywords", hue="message_role", ax=ax)
-    ax.set_title("Top Topics by Message Role")
-    ax.set_xlabel("Messages")
-    ax.set_ylabel("Topic keywords")
-    ax.legend(title="Role")
+    # Prepare data for plotting
+    plot_data = sentiment_counts.copy()
+    plot_data['role'] = plot_data['role'].str.capitalize()
+
+    # Create grouped bar chart
+    x = np.arange(len(plot_data['sentiment_label'].unique()))
+    width = 0.35
+    user_data = plot_data[plot_data['role'] == 'User']
+    ai_data = plot_data[plot_data['role'] == 'Assistant']
+
+    ax.bar(x - width/2, user_data['messages'], width, label='User',
+           color=COLOR_USER, alpha=0.8)
+    ax.bar(x + width/2, ai_data['messages'], width, label='Assistant',
+           color=COLOR_AI, alpha=0.8)
+
+    ax.set_title("Sentiment Distribution by Role",
+                 fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
+    ax.set_xlabel("Sentiment", fontweight='bold', fontsize=11)
+    ax.set_ylabel("Number of Messages", fontweight='bold', fontsize=11)
+    ax.set_xticks(x)
+    ax.set_xticklabels(user_data['sentiment_label'].str.capitalize())
+    ax.legend(title='Role', fontsize=10, title_fontsize=10)
+    ax.grid(True, alpha=0.3, axis='y')
+
+    # Add value labels
+    for container in ax.containers:
+        ax.bar_label(container, fontsize=9)
 else:
-    ax.text(0.5, 0.5, "Topic modeling did not return any clusters", ha="center", va="center")
-fig.tight_layout()
+    ax.text(0.5, 0.5, "No sentiment records available",
+            ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
+    ax.set_xticks([])
+    ax.set_yticks([])
+plt.tight_layout()
+plt.show()
 ```
 
-# 5. Next Steps
+This comparison reveals whether users and the AI assistant maintain different emotional tones during interactions.
 
-- Refresh the dataset by re-running the Snakemake pipeline after new exports are available.
-- Consider integrating qualitative review of high-volume topics to curate follow-up content.
-- Monitor sentiment shifts over time as additional cohorts are onboarded.
+## 3.3 Overall Sentiment Summary
+
+```{python}
+#| label: tbl-sentiment-overview
+#| tbl-cap: "Table 4: Overall sentiment statistics"
+from IPython.display import display, Markdown
+
+if not sentiment_overview.empty:
+    display(Markdown(sentiment_overview.to_markdown(index=False)))
+else:
+    print("No sentiment overview data available")
+```
 
 ---
 
-Report generated via Snakemake scripts on `{pd.Timestamp.today().strftime('%B %d, %Y')}`.
+# Part 4: Topic Analysis {.tabset}
+
+Topic modeling identifies the main themes and subjects discussed in conversations. This analysis reveals what students talk about most frequently and how the AI responds.
+
+## Understanding Topic Modeling
+
+**What is topic modeling?**
+
+Topic modeling uses natural language processing to automatically discover themes in text data. Each topic is represented by:
+
+- **Keywords**: The most characteristic words for that topic
+- **Message count**: How many messages belong to that topic
+- **Role**: Whether the topic appears in user or AI messages
+
+This helps identify common student questions, concerns, and the AI's response patterns.
+
+## 4.1 Topic Distribution Table
+
+```{python}
+#| label: tbl-topic-keywords
+#| tbl-cap: "Table 5: Top topics identified across user and AI messages"
+from IPython.display import display, Markdown
+
+if not topic_keywords.empty:
+    topic_display = topic_keywords.sort_values(
+        ["message_role", "message_count"],
+        ascending=[True, False]
+    ).copy()
+    topic_display['message_role'] = topic_display['message_role'].str.capitalize()
+    topic_display.columns = ['Role', 'Topic ID', 'Keywords', 'Message Count']
+    display(Markdown(topic_display.head(20).to_markdown(index=False)))
+else:
+    print("No topic data available")
+```
+
+## 4.2 Topic Visualization
+
+```{python}
+#| label: fig-topics
+#| fig-cap: "Figure 5: Top 10 topics by message role"
+fig, ax = plt.subplots(figsize=(12, 8))
+if not topic_keywords.empty:
+    # Get top 10 topics for each role
+    top_topics = topic_keywords.groupby("message_role").head(10).copy()
+    top_topics['message_role'] = top_topics['message_role'].str.capitalize()
+
+    # Sort by message count for better visualization
+    top_topics = top_topics.sort_values(['message_role', 'message_count'], ascending=[True, True])
+
+    # Create horizontal bar chart
+    y_pos = np.arange(len(top_topics))
+    colors = [COLOR_USER if role.lower() == 'user' else COLOR_AI
+              for role in top_topics['message_role']]
+
+    bars = ax.barh(y_pos, top_topics['message_count'], color=colors, alpha=0.8)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(top_topics['keywords'], fontsize=9)
+    ax.set_title("Top Topics by Message Role",
+                 fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
+    ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=11)
+    ax.set_ylabel("Topic Keywords", fontweight='bold', fontsize=11)
+    ax.grid(True, alpha=0.3, axis='x')
+
+    # Add value labels
+    for i, (idx, row) in enumerate(top_topics.iterrows()):
+        ax.text(row['message_count'] + max(top_topics['message_count']) * 0.01,
+                i, f"{row['message_count']:,}",
+                va='center', fontsize=8)
+
+    # Add legend
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor=COLOR_USER, alpha=0.8, label='User'),
+        Patch(facecolor=COLOR_AI, alpha=0.8, label='Assistant')
+    ]
+    ax.legend(handles=legend_elements, title='Role', loc='lower right',
+              fontsize=10, title_fontsize=10)
+else:
+    ax.text(0.5, 0.5, "Topic modeling did not return any clusters",
+            ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
+    ax.set_xticks([])
+    ax.set_yticks([])
+plt.tight_layout()
+plt.show()
+```
+
+The visualization shows the most frequent discussion topics, helping identify what students need help with most often.
+
+---
+
+# Summary and Recommendations
+
+## Key Insights
+
+Based on the analysis of student-AI interactions, several important patterns emerge:
+
+```{python}
+#| output: asis
+insights = []
+
+# Message activity insights
+if not timeline_daily.empty and not timeline_hourly.empty:
+    peak_hour = timeline_hourly.loc[timeline_hourly['messages'].idxmax(), 'hour']
+    total_messages = timeline_daily['messages'].sum()
+    insights.append(f"**Engagement Patterns**: Students sent {total_messages:,} messages, with peak activity occurring around hour {peak_hour}.")
+
+# CAL state insights
+if not cal_state_counts.empty:
+    top_state = cal_state_counts.iloc[0]
+    insights.append(f"**Learning States**: The '{top_state['cal_state']}' state generated the most engagement with {top_state['message_count']:,} messages.")
+
+# Sentiment insights
+if not sentiment_counts.empty:
+    user_sentiments = sentiment_counts[sentiment_counts['role'] == 'user']
+    if not user_sentiments.empty:
+        dominant_sentiment = user_sentiments.loc[user_sentiments['messages'].idxmax(), 'sentiment_label']
+        insights.append(f"**User Sentiment**: Students predominantly express {dominant_sentiment} sentiment in their interactions.")
+
+# Topic insights
+if not topic_keywords.empty:
+    user_topics = topic_keywords[topic_keywords['message_role'] == 'user'].sort_values('message_count', ascending=False)
+    if not user_topics.empty:
+        top_topic = user_topics.iloc[0]
+        insights.append(f"**Common Topics**: The most frequent discussion topic among students is '{top_topic['keywords']}' with {top_topic['message_count']} messages.")
+
+for insight in insights:
+    print(f"{insight}\n\n")
+```
+
+## Recommendations
+
+Based on these findings, we recommend the following actions:
+
+1. **Optimize Engagement Timing**
+   - Schedule proactive AI interventions during peak usage hours
+   - Consider sending reminders or notifications when students are most active
+
+2. **Enhance High-Volume CAL States**
+   - Focus development efforts on improving the most-used learning states
+   - Add more content and support for popular interaction contexts
+
+3. **Address Sentiment Patterns**
+   - Monitor negative sentiment trends and identify root causes
+   - Refine AI responses to maintain positive, supportive interactions
+
+4. **Expand Topic Coverage**
+   - Create targeted content for frequently discussed topics
+   - Develop specialized responses for common student questions
+
+5. **Data Quality and Monitoring**
+   - Refresh the dataset regularly by re-running the analysis pipeline
+   - Monitor sentiment shifts over time as new cohorts are onboarded
+   - Conduct qualitative review of high-volume topics to improve content
+
+## Next Steps
+
+To continue improving the analysis:
+
+- **Update Data**: Re-run the Snakemake pipeline when new data becomes available
+- **Deeper Analysis**: Conduct user interviews to validate automated findings
+- **A/B Testing**: Experiment with different AI response strategies based on insights
+- **Longitudinal Tracking**: Monitor how patterns change over time
+
+---
+
+```{python}
+#| output: asis
+print(f"**Report generated:** {pd.Timestamp.today().strftime('%B %d, %Y')}")
+print(f"\n**Analysis period:** {datetime_overview.get('start_datetime', 'N/A')} to {datetime_overview.get('end_datetime', 'N/A')}")
+print(f"\n**Total messages analyzed:** {datetime_overview.get('total_messages', 'N/A'):,}")
+```
