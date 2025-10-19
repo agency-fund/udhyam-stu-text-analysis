@@ -5,11 +5,36 @@ ENABLE_OPENAI = config.get("enable_openai_translation", True)
 
 ALL_OUTPUTS = [
     "data/cleaned/messages_cleaned.csv",
-    "data/cleaned/messages_summary.json",
+    "data/analysis/datetime_overview.json",
+    "data/analysis/cal_state_by_user.csv",
+    "data/analysis/message_stats.csv",
+    "data/analysis/sentiment_overview.csv",
+    "data/analysis/sentiment_user.csv",
+    "data/analysis/sentiment_ai.csv",
+    "data/analysis/sentiment_all.csv",
+    "data/analysis/topic_keywords.csv",
+    "data/analysis/topic_info_user.csv",
+    "data/analysis/topic_info_assistant.csv",
+    "data/analysis/message_topics_user.csv",
+    "data/analysis/message_topics_assistant.csv",
+    "docs/udhyam_stu_text_analysis_report.qmd",
+    "docs/index.html",
+    "docs/pipeline_graphs/pipeline_dag.png",
 ]
 
 if ENABLE_OPENAI:
     ALL_OUTPUTS.append("data/cleaned/messages_translated.csv")
+    
+    rule openai_translate:
+        input:
+            cleaned="data/cleaned/messages_cleaned.csv"
+        output:
+            translated="data/cleaned/messages_translated.csv"
+        shell:
+            (
+                "python scripts/02_translate_messages.py "
+                "--input {input.cleaned:q} --output {output.translated:q}"
+            )
 
 
 rule all:
@@ -29,24 +54,91 @@ rule clean_messages:
         )
 
 
-rule messages_summary:
+rule generate_summary:
     input:
-        cleaned="data/cleaned/messages_cleaned.csv"
+        translated="data/cleaned/messages_translated.csv"
     output:
-        summary="data/cleaned/messages_summary.json"
-    script:
-        "scripts/messages_summary.py"
+        datetime_json="data/analysis/datetime_overview.json",
+        cal_state_csv="data/analysis/cal_state_by_user.csv",
+        message_stats="data/analysis/message_stats.csv"
+    shell:
+        (
+            "python scripts/03_generate_summary.py "
+            "--input {input.translated:q} --datetime-summary {output.datetime_json:q} "
+            "--cal-state-summary {output.cal_state_csv:q} --message-stats {output.message_stats:q}"
+        )
 
 
-if ENABLE_OPENAI:
+rule sentiment_analysis:
+    input:
+        translated="data/cleaned/messages_translated.csv"
+    output:
+        overview="data/analysis/sentiment_overview.csv",
+        user="data/analysis/sentiment_user.csv",
+        assistant="data/analysis/sentiment_ai.csv",
+        combined="data/analysis/sentiment_all.csv"
+    shell:
+        (
+            "python scripts/04_sentiment_analysis.py "
+            "--input {input.translated:q}"
+        )
 
-    rule openai_translate:
-        input:
-            cleaned="data/cleaned/messages_cleaned.csv"
-        output:
-            translated="data/cleaned/messages_translated.csv"
-        shell:
-            (
-                "python scripts/02_translate_messages.py "
-                "--input {input.cleaned:q} --output {output.translated:q}"
-            )
+
+rule topic_modeling:
+    input:
+        translated="data/cleaned/messages_translated.csv"
+    output:
+        keywords="data/analysis/topic_keywords.csv",
+        user_topics="data/analysis/topic_info_user.csv",
+        assistant_topics="data/analysis/topic_info_assistant.csv",
+        user_assignments="data/analysis/message_topics_user.csv",
+        assistant_assignments="data/analysis/message_topics_assistant.csv"
+    shell:
+        (
+            "python scripts/05_topic_modeling.py "
+            "--input {input.translated:q}"
+        )
+
+
+rule build_report:
+    input:
+        datetime_json="data/analysis/datetime_overview.json",
+        cal_state_csv="data/analysis/cal_state_by_user.csv",
+        message_stats="data/analysis/message_stats.csv",
+        sentiment="data/analysis/sentiment_overview.csv",
+        topics="data/analysis/topic_keywords.csv",
+        template="context/chat_analysis_report.qmd"
+    output:
+        report="docs/udhyam_stu_text_analysis_report.qmd"
+    shell:
+        (
+            "python scripts/06_build_report.py "
+            "--datetime-json {input.datetime_json:q} --cal-state-csv {input.cal_state_csv:q} "
+            "--message-stats-csv {input.message_stats:q} --sentiment-csv {input.sentiment:q} "
+            "--topics-csv {input.topics:q} --output {output.report:q}"
+        )
+
+
+rule render_report:
+    input:
+        report="docs/udhyam_stu_text_analysis_report.qmd"
+    output:
+        html="docs/index.html"
+    shell:
+        (
+            "python scripts/07_render_report.py "
+            "--input {input.report:q} --output {output.html:q}"
+        )
+
+
+rule pipeline_dag:
+    input:
+        snakefile="Snakefile"
+    output:
+        dag="docs/pipeline_graphs/pipeline_dag.png"
+    shell:
+        (
+            "mkdir -p docs/pipeline_graphs && "
+            "snakemake --snakefile {input.snakefile:q} --cores 1 --dag | "
+            "dot -Tpng > {output.dag:q}"
+        )

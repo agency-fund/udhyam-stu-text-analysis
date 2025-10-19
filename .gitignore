@@ -26,3 +26,5 @@ ENV/
 # Context
 context/
 .snakemake/
+udhyam_stu_text_analysis_report_files/
+AGENT.md

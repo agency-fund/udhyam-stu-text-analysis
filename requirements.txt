@@ -7,3 +7,10 @@ openai
 python-dotenv
 tqdm
 snakemake
+scikit-learn
+vaderSentiment
+transformers
+torch
+bertopic
+sentence-transformers
+nltk

@@ -1,0 +1,243 @@
+---
+title: "Udhyam Student Text Analysis Report"
+date: last-modified
+author: "Udhyam Analytics"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: cosmo
+    code-fold: true
+    fig-width: 10
+    fig-height: 6
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{python}
+import json
+from pathlib import Path
+from textwrap import fill
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+plt.style.use("seaborn-v0_8")
+
+BASE = Path("../")
+
+def load_csv(path: str) -> pd.DataFrame:
+    fp = BASE / path
+    if not fp.exists():
+        raise FileNotFoundError(f"Expected file not found: {fp}")
+    return pd.read_csv(fp)
+
+datetime_overview_json = BASE / "data/analysis/datetime_overview.json"
+if not datetime_overview_json.exists():
+    raise FileNotFoundError("datetime_overview.json missing. Run scripts/03_generate_summary.py.")
+datetime_overview = json.loads(datetime_overview_json.read_text())
+
+cal_state_by_user = load_csv("data/analysis/cal_state_by_user.csv")
+message_stats = load_csv("data/analysis/message_stats.csv")
+sentiment_user = load_csv("data/analysis/sentiment_user.csv")
+sentiment_ai = load_csv("data/analysis/sentiment_ai.csv")
+sentiment_overview = load_csv("data/analysis/sentiment_overview.csv")
+topic_keywords = load_csv("data/analysis/topic_keywords.csv")
+
+messages = load_csv("data/cleaned/messages_translated.csv")
+messages["datetime"] = pd.to_datetime(messages["datetime"], errors="coerce")
+messages = messages.dropna(subset=["datetime"])
+
+messages["date"] = messages["datetime"].dt.date
+messages["hour"] = messages["datetime"].dt.hour
+
+user_msgs = messages[["datetime", "date", "hour", "whatsapp_id", "user_msg_en", "cal_state"]].rename(columns={"user_msg_en": "message"})
+assistant_msgs = messages[["datetime", "date", "hour", "whatsapp_id", "ai_msg_en"]].rename(columns={"ai_msg_en": "message"})
+
+timeline_daily = (
+    user_msgs.groupby("date").size().reset_index(name="messages")
+    if not user_msgs.empty else pd.DataFrame(columns=["date", "messages"])
+)
+
+timeline_hourly = (
+    user_msgs.groupby("hour").size().reset_index(name="messages")
+    if not user_msgs.empty else pd.DataFrame(columns=["hour", "messages"])
+)
+
+cal_state_counts = (
+    cal_state_by_user.groupby("cal_state")["message_count"].sum().reset_index().sort_values("message_count", ascending=False)
+    if not cal_state_by_user.empty else pd.DataFrame(columns=["cal_state", "message_count"])
+)
+
+def formatted_summary():
+    total_msgs = datetime_overview.get("total_messages")
+    users = datetime_overview.get("unique_users")
+    start = datetime_overview.get("start_datetime")
+    end = datetime_overview.get("end_datetime")
+    coverage = datetime_overview.get("total_days")
+    lines = [
+        f"Total messages analysed: {total_msgs:,}" if total_msgs is not None else None,
+        f"Unique WhatsApp IDs: {users:,}" if users is not None else None,
+        f"Data range: {start} to {end}" if start and end else None,
+        f"Coverage: {coverage} days" if coverage is not None else None,
+    ]
+    return "\n".join(line for line in lines if line)
+
+overview_sentence = formatted_summary()
+
+def sentiment_summary(df: pd.DataFrame, role: str) -> str:
+    if df.empty:
+        return f"No sentiment records for {role}."
+    counts = df["sentiment_label"].value_counts(normalize=True).head(3)
+    parts = [f"{label} ({pct*100:.1f}%)" for label, pct in counts.items()]
+    return f"{role.capitalize()} messages most often express: " + ", ".join(parts)
+
+sentiment_user_sentence = sentiment_summary(sentiment_user, "user")
+sentiment_ai_sentence = sentiment_summary(sentiment_ai, "assistant")
+
+def topic_summary(df: pd.DataFrame, role: str, top_n: int = 5) -> str:
+    role_df = df[df["message_role"] == role]
+    if role_df.empty:
+        return f"No topics were identified for {role}."
+    top_rows = role_df.sort_values("message_count", ascending=False).head(top_n)
+    fragments = [
+        f"Topic {row.topic_id}: {row.keywords} ({row.message_count} msgs)"
+        for row in top_rows.itertuples()
+    ]
+    return "\n".join(fragments)
+
+user_topic_sentence = topic_summary(topic_keywords, "user")
+assistant_topic_sentence = topic_summary(topic_keywords, "assistant")
+
+def cal_state_table():
+    if cal_state_counts.empty:
+        return pd.DataFrame(columns=["cal_state", "message_count"])
+    cal_state_counts["share_pct"] = cal_state_counts["message_count"] / cal_state_counts["message_count"].sum() * 100
+    return cal_state_counts
+
+``` 
+
+# Executive Summary
+
+```{python}
+summary_points = [
+    overview_sentence,
+    sentiment_user_sentence,
+    sentiment_ai_sentence,
+    "Key user topics:\n" + user_topic_sentence,
+    "Assistant response themes:\n" + assistant_topic_sentence,
+]
+print("\n\n".join(point for point in summary_points if point))
+```
+
+# 1. Message Activity
+
+```{python}
+fig, ax = plt.subplots()
+if not timeline_daily.empty:
+    sns.lineplot(data=timeline_daily, x="date", y="messages", marker="o", ax=ax)
+    ax.set_title("Daily User Message Volume")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Messages")
+    plt.xticks(rotation=45, ha="right")
+else:
+    ax.text(0.5, 0.5, "No user message activity records", ha="center", va="center")
+fig.tight_layout()
+```
+
+```{python}
+fig, ax = plt.subplots()
+if not timeline_hourly.empty:
+    sns.barplot(data=timeline_hourly, x="hour", y="messages", color="#3498DB", ax=ax)
+    ax.set_title("Hourly Distribution of User Messages")
+    ax.set_xlabel("Hour of day")
+    ax.set_ylabel("Messages")
+else:
+    ax.text(0.5, 0.5, "No hourly data available", ha="center", va="center")
+fig.tight_layout()
+```
+
+```{python}
+message_stats
+```
+
+# 2. CAL State Engagement
+
+```{python}
+cal_state_table()
+```
+
+```{python}
+fig, ax = plt.subplots()
+if not cal_state_counts.empty:
+    sns.barplot(data=cal_state_counts.head(10), x="message_count", y="cal_state", ax=ax, palette="Blues_d")
+    ax.set_title("Top CAL States by Message Volume")
+    ax.set_xlabel("Messages")
+    ax.set_ylabel("CAL State")
+else:
+    ax.text(0.5, 0.5, "No CAL state data available", ha="center", va="center")
+fig.tight_layout()
+```
+
+# 3. Sentiment Analysis
+
+```{python}
+sentiment_long = pd.concat([
+    sentiment_user.assign(role="user"),
+    sentiment_ai.assign(role="assistant"),
+], ignore_index=True, sort=False)
+
+sentiment_counts = (
+    sentiment_long.groupby(["role", "sentiment_label"]).size().reset_index(name="messages")
+)
+sentiment_counts
+```
+
+```{python}
+fig, ax = plt.subplots()
+if not sentiment_counts.empty:
+    sns.barplot(data=sentiment_counts, x="sentiment_label", y="messages", hue="role", ax=ax)
+    ax.set_title("Sentiment Distribution by Role")
+    ax.set_xlabel("Sentiment label")
+    ax.set_ylabel("Messages")
+    ax.legend(title="Role")
+else:
+    ax.text(0.5, 0.5, "No sentiment records available", ha="center", va="center")
+fig.tight_layout()
+```
+
+```{python}
+sentiment_overview
+```
+
+# 4. Topic Highlights
+
+```{python}
+topic_keywords.sort_values(["message_role", "message_count"], ascending=[True, False])
+```
+
+```{python}
+fig, ax = plt.subplots()
+if not topic_keywords.empty:
+    top_topics = topic_keywords.groupby("message_role").head(10)
+    sns.barplot(data=top_topics, x="message_count", y="keywords", hue="message_role", ax=ax)
+    ax.set_title("Top Topics by Message Role")
+    ax.set_xlabel("Messages")
+    ax.set_ylabel("Topic keywords")
+    ax.legend(title="Role")
+else:
+    ax.text(0.5, 0.5, "Topic modeling did not return any clusters", ha="center", va="center")
+fig.tight_layout()
+```
+
+# 5. Next Steps
+
+- Refresh the dataset by re-running the Snakemake pipeline after new exports are available.
+- Consider integrating qualitative review of high-volume topics to curate follow-up content.
+- Monitor sentiment shifts over time as additional cohorts are onboarded.
+
+---
+
+Report generated via Snakemake scripts on `{pd.Timestamp.today().strftime('%B %d, %Y')}`.

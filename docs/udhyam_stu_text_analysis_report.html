@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.25">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Udhyam Analytics">
+<meta name="dcterms.date" content="2025-10-19">
+
+<title>Udhyam Student Text Analysis Report</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="udhyam_stu_text_analysis_report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="udhyam_stu_text_analysis_report_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="udhyam_stu_text_analysis_report_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="udhyam_stu_text_analysis_report_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="udhyam_stu_text_analysis_report_files/libs/quarto-html/popper.min.js"></script>
+<script src="udhyam_stu_text_analysis_report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="udhyam_stu_text_analysis_report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="udhyam_stu_text_analysis_report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="udhyam_stu_text_analysis_report_files/libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="udhyam_stu_text_analysis_report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="udhyam_stu_text_analysis_report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="udhyam_stu_text_analysis_report_files/libs/bootstrap/bootstrap-a74871fe4945b66d259aafc266475145.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#executive-summary" id="toc-executive-summary" class="nav-link active" data-scroll-target="#executive-summary">Executive Summary</a></li>
+  <li><a href="#message-activity" id="toc-message-activity" class="nav-link" data-scroll-target="#message-activity">1. Message Activity</a></li>
+  <li><a href="#cal-state-engagement" id="toc-cal-state-engagement" class="nav-link" data-scroll-target="#cal-state-engagement">2. CAL State Engagement</a></li>
+  <li><a href="#sentiment-analysis" id="toc-sentiment-analysis" class="nav-link" data-scroll-target="#sentiment-analysis">3. Sentiment Analysis</a></li>
+  <li><a href="#topic-highlights" id="toc-topic-highlights" class="nav-link" data-scroll-target="#topic-highlights">4. Topic Highlights</a></li>
+  <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps">5. Next Steps</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Udhyam Student Text Analysis Report</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Udhyam Analytics </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 19, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="executive-summary" class="level1">
+<h1>Executive Summary</h1>
+<div id="de059cf3" class="cell" data-execution_count="2">
+<div class="cell-output cell-output-stdout">
+<pre><code>Total messages analysed: 10,783
+Unique WhatsApp IDs: 4,451
+Data range: 2025-09-02T13:59:14 to 2025-10-08T20:13:54
+Coverage: 37 days
+
+User messages most often express: 3 stars (37.9%), 5 stars (28.9%), 1 star (19.3%)
+
+Assistant messages most often express: 4 stars (70.1%), 5 stars (22.5%), 3 stars (5.7%)
+
+Key user topics:
+Topic 0: okay okay, okay, bro okay, bro, little, , ,  (983 msgs)
+Topic 1: yes yes, yes, yes course, course yes, sir, course, ,  (262 msgs)
+Topic 2: purpose kbc, purpose, kbc, understand kbc, understand anything, kbc guide, understand, anything (232 msgs)
+Topic 3: bb program, bb, participate bb, program activities, activities, start bb, teacher bb, activities bb (195 msgs)
+Topic 4: okay okay, okay, okay right, right, , , ,  (194 msgs)
+
+Assistant response themes:
+Topic 0: around, people, perspective, framework evaluate, perspective people, look, idea perspective, problems (230 msgs)
+Topic 1: ideas, idea kbc, people planet, framework, people, 3p, problems, planet profit (139 msgs)
+Topic 2: bags, products, organic, plastic, local, friendly, eco, eco friendly (134 msgs)
+Topic 3: brainstorming, problems, ideas, observe, brainstorming session, encourage, session, encourage students (127 msgs)
+Topic 4: id, student id, correct, update, profile, epunjab, epunjab id, contact (69 msgs)</code></pre>
+</div>
+</div>
+</section>
+<section id="message-activity" class="level1">
+<h1>1. Message Activity</h1>
+<div id="0de4b973" class="cell" data-execution_count="3">
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="udhyam_stu_text_analysis_report_files/figure-html/cell-4-output-1.png" width="758" height="518" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="47ef59b6" class="cell" data-execution_count="4">
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="udhyam_stu_text_analysis_report_files/figure-html/cell-5-output-1.png" width="758" height="518" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="122231a1" class="cell" data-execution_count="5">
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">role</th>
+<th data-quarto-table-cell-role="th">messages</th>
+<th data-quarto-table-cell-role="th">avg_characters</th>
+<th data-quarto-table-cell-role="th">median_characters</th>
+<th data-quarto-table-cell-role="th">avg_tokens</th>
+<th data-quarto-table-cell-role="th">median_tokens</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>user</td>
+<td>10783</td>
+<td>42.838264</td>
+<td>38.0</td>
+<td>7.847909</td>
+<td>7.0</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>assistant</td>
+<td>7597</td>
+<td>368.535751</td>
+<td>441.0</td>
+<td>57.987851</td>
+<td>68.0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="cal-state-engagement" class="level1">
+<h1>2. CAL State Engagement</h1>
+<div id="5153efd7" class="cell" data-execution_count="6">
+<div class="cell-output cell-output-display" data-execution_count="6">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">cal_state</th>
+<th data-quarto-table-cell-role="th">message_count</th>
+<th data-quarto-table-cell-role="th">share_pct</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>haryana</td>
+<td>6399</td>
+<td>59.343411</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>Punjab</td>
+<td>3707</td>
+<td>34.378188</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>MP</td>
+<td>677</td>
+<td>6.278401</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="21a1f79b" class="cell" data-execution_count="7">
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="udhyam_stu_text_analysis_report_files/figure-html/cell-8-output-1.png" width="758" height="518" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="sentiment-analysis" class="level1">
+<h1>3. Sentiment Analysis</h1>
+<div id="9e6142d3" class="cell" data-execution_count="8">
+<div class="cell-output cell-output-display" data-execution_count="8">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">role</th>
+<th data-quarto-table-cell-role="th">sentiment_label</th>
+<th data-quarto-table-cell-role="th">messages</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>assistant</td>
+<td>1 star</td>
+<td>87</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>assistant</td>
+<td>2 stars</td>
+<td>41</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>assistant</td>
+<td>3 stars</td>
+<td>430</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
+<td>assistant</td>
+<td>4 stars</td>
+<td>5327</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">4</th>
+<td>assistant</td>
+<td>5 stars</td>
+<td>1712</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">5</th>
+<td>user</td>
+<td>1 star</td>
+<td>2080</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">6</th>
+<td>user</td>
+<td>2 stars</td>
+<td>297</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">7</th>
+<td>user</td>
+<td>3 stars</td>
+<td>4088</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">8</th>
+<td>user</td>
+<td>4 stars</td>
+<td>1202</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">9</th>
+<td>user</td>
+<td>5 stars</td>
+<td>3116</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="f7ac3061" class="cell" data-execution_count="9">
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="udhyam_stu_text_analysis_report_files/figure-html/cell-10-output-1.png" width="758" height="518" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="871e013a" class="cell" data-execution_count="10">
+<div class="cell-output cell-output-display" data-execution_count="10">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">role</th>
+<th data-quarto-table-cell-role="th">messages</th>
+<th data-quarto-table-cell-role="th">mean_score</th>
+<th data-quarto-table-cell-role="th">median_score</th>
+<th data-quarto-table-cell-role="th">mean_stars</th>
+<th data-quarto-table-cell-role="th">count_3_stars</th>
+<th data-quarto-table-cell-role="th">count_5_stars</th>
+<th data-quarto-table-cell-role="th">count_1_star</th>
+<th data-quarto-table-cell-role="th">count_4_stars</th>
+<th data-quarto-table-cell-role="th">count_2_stars</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>user</td>
+<td>10783</td>
+<td>0.333073</td>
+<td>0.303249</td>
+<td>3.276083</td>
+<td>4088</td>
+<td>3116</td>
+<td>2080</td>
+<td>1202</td>
+<td>297</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>assistant</td>
+<td>7597</td>
+<td>0.465076</td>
+<td>0.468567</td>
+<td>4.123601</td>
+<td>430</td>
+<td>1712</td>
+<td>87</td>
+<td>5327</td>
+<td>41</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="topic-highlights" class="level1">
+<h1>4. Topic Highlights</h1>
+<div id="4a502365" class="cell" data-execution_count="11">
+<div class="cell-output cell-output-display" data-execution_count="11">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">message_role</th>
+<th data-quarto-table-cell-role="th">topic_id</th>
+<th data-quarto-table-cell-role="th">keywords</th>
+<th data-quarto-table-cell-role="th">message_count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">254</th>
+<td>assistant</td>
+<td>0</td>
+<td>around, people, perspective, framework evaluat...</td>
+<td>230</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">255</th>
+<td>assistant</td>
+<td>1</td>
+<td>ideas, idea kbc, people planet, framework, peo...</td>
+<td>139</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">256</th>
+<td>assistant</td>
+<td>2</td>
+<td>bags, products, organic, plastic, local, frien...</td>
+<td>134</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">257</th>
+<td>assistant</td>
+<td>3</td>
+<td>brainstorming, problems, ideas, observe, brain...</td>
+<td>127</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">258</th>
+<td>assistant</td>
+<td>4</td>
+<td>id, student id, correct, update, profile, epun...</td>
+<td>69</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">...</th>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">249</th>
+<td>user</td>
+<td>249</td>
+<td>teacher registration, assistance teacher, teac...</td>
+<td>11</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">250</th>
+<td>user</td>
+<td>250</td>
+<td>translation, needed, natural english, message ...</td>
+<td>11</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">251</th>
+<td>user</td>
+<td>251</td>
+<td>know anything, program program, anything, sir ...</td>
+<td>11</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">252</th>
+<td>user</td>
+<td>252</td>
+<td>sbic, sbic program, registering students, stud...</td>
+<td>11</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">253</th>
+<td>user</td>
+<td>253</td>
+<td>color, presentation kbc, materials resources, ...</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+
+<p>472 rows × 4 columns</p>
+</div>
+</div>
+</div>
+<div id="2761f52c" class="cell" data-execution_count="12">
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="udhyam_stu_text_analysis_report_files/figure-html/cell-13-output-1.png" width="1388" height="486" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="next-steps" class="level1">
+<h1>5. Next Steps</h1>
+<ul>
+<li>Refresh the dataset by re-running the Snakemake pipeline after new exports are available.</li>
+<li>Consider integrating qualitative review of high-volume topics to curate follow-up content.</li>
+<li>Monitor sentiment shifts over time as additional cohorts are onboarded.</li>
+</ul>
+<hr>
+<p>Report generated via Snakemake scripts on <code>{pd.Timestamp.today().strftime('%B %d, %Y')}</code>.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
