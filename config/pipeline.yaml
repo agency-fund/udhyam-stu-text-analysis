@@ -4,3 +4,9 @@ raw_data: "data/raw/AI Help (Udhyam) student usage_Table - Sheet1.csv"
 
 # Disable if you do not want to call the OpenAI API via scripts/02_translate_messages.py.
 enable_openai_translation: false
+
+# Enable to ask OpenAI models to rewrite BERTopic representations (names/descriptions).
+enable_openai_topic_representation: true
+
+# Default OpenAI model used for topic representation refinement (when enabled).
+openai_topic_model: "gpt-4o-mini"

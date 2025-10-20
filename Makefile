@@ -4,7 +4,7 @@ SNAKEFILE ?= Snakefile
 .PHONY: pipeline-run pipeline-status pipeline-graph pipeline-graph-png pipeline-shell
 
 pipeline-run:
-	$(SNAKEMAKE) --snakefile $(SNAKEFILE) --cores 1
+	$(SNAKEMAKE) --snakefile $(SNAKEFILE) --cores 1 --forcerun render_report
 
 pipeline-status:
 	$(SNAKEMAKE) --snakefile $(SNAKEFILE) --summary

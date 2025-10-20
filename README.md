@@ -20,8 +20,7 @@ and shortcuts for loading results into an interactive session.
 │   ├── 03_generate_summary.py    # Aggregates datetime + CAL state + message stats
 │   ├── 04_sentiment_topic.py     # Sentiment & topic modeling over translated text
 │   ├── 05_topic_modeling.py      # BERTopic pipeline for translated messages
-│   ├── 06_build_report.py        # Generates docs/udhyam_stu_text_analysis_report.qmd
-│   ├── 07_render_report.py       # Renders docs/index.html for GitHub Pages
+│   ├── 06_render_report.py       # Renders docs/index.html for GitHub Pages
 │   └── pipeline_shell.py         # Launch an analysis shell with outputs pre-loaded
 ├── requirements.txt              # Python dependencies (Snakemake included)
 ├── Makefile                      # Convenience wrappers around Snakemake
@@ -64,7 +63,14 @@ and shortcuts for loading results into an interactive session.
 
    ```yaml
    enable_openai_translation: false   # enable when you want to re-run OpenAI translation
+   enable_openai_topic_representation: false  # enable to have GPT refine BERTopic names
    ```
+
+   When `enable_openai_topic_representation` is true, the pipeline will pass
+   cleaned topic keywords to the configured OpenAI model (default
+   `gpt-4o-mini`) so GPT can rewrite the topic names/descriptions. Make sure
+   `OPENAI_API_KEY` is exported, and adjust `openai_topic_model` in
+   `config/pipeline.yaml` if you prefer a different model.
 
 ## Running the Workflow
 
@@ -77,15 +83,14 @@ The `Snakefile` covers three core rules:
 | `generate_summary`   | `data/analysis/datetime_overview.json`,<br>`data/analysis/cal_state_by_user.csv`,<br>`data/analysis/message_stats.csv` | Aggregates timeline, CAL state, and message-length metrics from the translated dataset. |
 | `sentiment_analysis` | `data/analysis/sentiment_overview.csv`,<br>`data/analysis/sentiment_user.csv`,<br>`data/analysis/sentiment_ai.csv` | Multilingual sentiment scoring via a Hugging Face model. |
 | `topic_modeling`     | `data/analysis/topic_keywords.csv`,<br>`data/analysis/topic_info_user.csv`,<br>`data/analysis/topic_info_assistant.csv` | BERTopic clustering for user/assistant messages. |
-| `build_report`       | `docs/udhyam_stu_text_analysis_report.qmd`                              | Creates a Quarto report summarising the key findings (timeline, CAL state, sentiment, topics). |
-| `render_report`      | `docs/index.html`                                                       | Renders the report to HTML for GitHub Pages (writes a placeholder if Quarto CLI is unavailable). |
+| `render_report`      | `docs/index.html`                                                       | Renders the existing Quarto report source to HTML for GitHub Pages (writes a placeholder if Quarto CLI is unavailable). |
 | `pipeline_dag`       | `docs/pipeline_graphs/pipeline_dag.png`                                 | Rebuilds the DAG visual on every run (`snakemake --dag | dot`). |
 
 Use Snakemake directly or via the Makefile wrappers:
 
 ```bash
 make pipeline-status      # Overview of what is up-to-date (uses `snakemake --summary`)
-make pipeline-run         # Run the full DAG (defaults to a single local core)
+make pipeline-run         # Run the full DAG (defaults to a single local core; always re-renders docs/index.html)
 make pipeline-graph       # Emit DAG as pipeline_graph.dot (Graphviz DOT format)
 make pipeline-graph-png   # Render DAG straight to pipeline_graph.png (requires Graphviz `dot`)
 make pipeline-shell       # Launch an IPython shell with pipeline outputs pre-loaded
@@ -153,12 +158,7 @@ Use `--extra name=path/to/file.csv` to load additional CSV artefacts on the fly.
   - Fits BERTopic models separately for user and assistant messages, exporting
     topic keywords, message assignments, and summary tables.
 
-- `scripts/06_build_report.py`
-  - Consumes the aggregated CSV/JSON outputs and creates
-    `docs/udhyam_stu_text_analysis_report.qmd`, a Quarto report with embedded
-    Python chunks for inspection.
-
-- `scripts/07_render_report.py`
+- `scripts/06_render_report.py`
   - Calls Quarto (when installed) to render the QMD file into `docs/index.html`,
     which GitHub Pages can serve directly. Falls back to a placeholder HTML
     with installation guidance when Quarto is missing.

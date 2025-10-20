@@ -8,9 +8,10 @@ for clearer, more distinct topics.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 from pathlib import Path
-from typing import Sequence
+from typing import Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -27,9 +28,19 @@ except ModuleNotFoundError as exc:  # pragma: no cover - runtime dependency chec
         "Install with: pip install bertopic[visualization] sentence-transformers umap-learn hdbscan"
     ) from exc
 
+try:
+    from bertopic.representation import OpenAI as OpenAIRepresentation  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    OpenAIRepresentation = None  # type: ignore
+
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+
+try:
+    import openai
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    openai = None  # type: ignore
 
 
 DEFAULT_INPUT = "data/cleaned/messages_translated.csv"
@@ -50,6 +61,22 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=int,
         default=None,
         help="Optional limit per role for debugging",
+    )
+    parser.add_argument(
+        "--use-openai-representation",
+        action="store_true",
+        help="Use OpenAI chat models to refine topic representations",
+    )
+    parser.add_argument(
+        "--openai-model",
+        default=os.environ.get("OPENAI_TOPIC_MODEL", "gpt-4o-mini"),
+        help="OpenAI model name for topic representations",
+    )
+    parser.add_argument(
+        "--openai-temperature",
+        type=float,
+        default=0.0,
+        help="Sampling temperature for topic refinement prompts",
     )
     return parser.parse_args(argv)
 
@@ -183,6 +210,7 @@ def create_topic_model(
     n_neighbors: int = 30,
     min_dist: float = 0.05,
     min_cluster_size: int = 25,
+    representation_model: Optional[object] = None,
 ) -> BERTopic:
     """Create improved BERTopic model with better embeddings and tuned parameters.
 
@@ -234,9 +262,53 @@ def create_topic_model(
         hdbscan_model=hdbscan_model,
         vectorizer_model=vectorizer_model,
         min_topic_size=min_topic_size,
+        representation_model=representation_model,
         calculate_probabilities=False,  # Faster computation
         verbose=True,  # Show progress
     )
+
+
+def build_openai_representation(enable: bool, model_name: str, temperature: float) -> Optional[object]:
+    """Create an OpenAI-based representation model when requested.
+
+    The OpenAI representation model refines raw topic keywords into human-readable
+    topic labels using GPT models. This process occurs after clustering:
+
+    1. Initial topic extraction: BERTopic uses c-TF-IDF to extract keywords from each cluster
+    2. OpenAI refinement: The keywords and sample documents are sent to the OpenAI API
+    3. LLM interpretation: The model generates concise, interpretable topic labels
+    4. Final representation: These labels replace or supplement the raw keywords
+
+    This approach produces more coherent, natural-language topic descriptions compared
+    to raw keyword lists, making topics easier to interpret for non-technical users.
+
+    The temperature parameter controls randomness (0.0 = deterministic, 1.0 = creative).
+    Lower values are recommended for consistent, factual topic labels.
+
+    Args:
+        enable: Whether to use OpenAI representation
+        model_name: OpenAI model to use (e.g., 'gpt-4o-mini', 'gpt-4')
+        temperature: Sampling temperature for generation (0.0-1.0)
+
+    Returns:
+        OpenAI representation model instance or None if disabled
+    """
+
+    if not enable:
+        return None
+
+    if openai is None or OpenAIRepresentation is None:
+        raise SystemExit(
+            "OpenAI topic representations require the 'openai' package and BERTopic's OpenAI extras. "
+            "Install with: pip install 'openai>=1.0.0' bertopic[openai]"
+        )
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise SystemExit("OPENAI_API_KEY must be set to use OpenAI topic representations.")
+
+    client = openai.OpenAI(api_key=api_key)
+    return OpenAIRepresentation(client, model=model_name, chat=True, temperature=temperature)
 
 
 def compute_topic_metrics(topic_model: BERTopic, texts: list[str]) -> dict:
@@ -366,12 +438,20 @@ def main(argv: Sequence[str] | None = None) -> None:
 
         # Create and fit model
         print("Creating BERTopic model with improved parameters...")
+        representation_model = build_openai_representation(
+            args.use_openai_representation,
+            args.openai_model,
+            args.openai_temperature,
+        )
+        if representation_model:
+            print(f"✓ OpenAI representation enabled ({args.openai_model})")
         topic_model = create_topic_model(
             stop_words,
             args.min_topic_size,
             n_neighbors=args.n_neighbors,
             min_dist=args.min_dist,
             min_cluster_size=args.min_cluster_size,
+            representation_model=representation_model,
         )
 
         print("Fitting topics...")

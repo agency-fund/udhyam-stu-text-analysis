@@ -1,7 +1,12 @@
+import shlex
+
 configfile: "config/pipeline.yaml"
 
 RAW_DATA = config["raw_data"]
 ENABLE_OPENAI = config.get("enable_openai_translation", True)
+ENABLE_OPENAI_TOPIC_REPR = config.get("enable_openai_topic_representation", False)
+OPENAI_TOPIC_MODEL = config.get("openai_topic_model", "gpt-4o-mini")
+OPENAI_TOPIC_MODEL_ARG = shlex.quote(OPENAI_TOPIC_MODEL)
 
 ALL_OUTPUTS = [
     "data/cleaned/messages_cleaned.csv",
@@ -17,7 +22,6 @@ ALL_OUTPUTS = [
     "data/analysis/topic_info_assistant.csv",
     "data/analysis/message_topics_user.csv",
     "data/analysis/message_topics_assistant.csv",
-    "docs/udhyam_stu_text_analysis_report.qmd",
     "docs/index.html",
     "docs/pipeline_graphs/pipeline_dag.png",
 ]
@@ -87,6 +91,12 @@ rule sentiment_analysis:
 rule topic_modeling:
     input:
         translated="data/cleaned/messages_translated.csv"
+    params:
+        openai_args=(
+            f" --use-openai-representation --openai-model {OPENAI_TOPIC_MODEL_ARG}"
+            if ENABLE_OPENAI_TOPIC_REPR
+            else ""
+        )
     output:
         keywords="data/analysis/topic_keywords.csv",
         user_topics="data/analysis/topic_info_user.csv",
@@ -96,28 +106,8 @@ rule topic_modeling:
     shell:
         (
             "python scripts/05_topic_modeling.py "
-            "--input {input.translated:q}"
+            "--input {input.translated:q}{params.openai_args}"
         )
-
-
-rule build_report:
-    input:
-        datetime_json="data/analysis/datetime_overview.json",
-        cal_state_csv="data/analysis/cal_state_by_user.csv",
-        message_stats="data/analysis/message_stats.csv",
-        sentiment="data/analysis/sentiment_overview.csv",
-        topics="data/analysis/topic_keywords.csv",
-        template="context/chat_analysis_report.qmd"
-    output:
-        report="docs/udhyam_stu_text_analysis_report.qmd"
-    shell:
-        (
-            "python scripts/06_build_report.py "
-            "--datetime-json {input.datetime_json:q} --cal-state-csv {input.cal_state_csv:q} "
-            "--message-stats-csv {input.message_stats:q} --sentiment-csv {input.sentiment:q} "
-            "--topics-csv {input.topics:q} --output {output.report:q}"
-        )
-
 
 rule render_report:
     input:
@@ -126,7 +116,7 @@ rule render_report:
         html="docs/index.html"
     shell:
         (
-            "python scripts/07_render_report.py "
+            "python scripts/06_render_report.py "
             "--input {input.report:q} --output {output.html:q}"
         )
 
