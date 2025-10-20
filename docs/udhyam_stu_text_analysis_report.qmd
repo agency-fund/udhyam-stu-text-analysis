@@ -9,13 +9,41 @@ format:
     code-fold: true
     theme: cosmo
     embed-resources: true
-    fig-width: 10
-    fig-height: 6
+    fig-width: 8
+    fig-height: 5
+    page-layout: article
 execute:
   warning: false
   message: false
   echo: false
+  fig.align: center
+jupyter: py312_arm_clean
 ---
+
+```{=html}
+<style>
+.quarto-figure {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+img, .quarto-figure img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+.figure-scroll {
+  overflow-x: auto;
+}
+.figure-scroll .quarto-figure {
+  max-width: none;
+  overflow-x: visible;
+  display: inline-block;
+}
+.figure-scroll img {
+  max-width: none !important;
+}
+</style>
+```
 
 ```{python}
 #| label: setup
@@ -45,17 +73,31 @@ rcParams['figure.facecolor'] = 'white'
 rcParams['axes.facecolor'] = 'white'
 rcParams['axes.edgecolor'] = '#E5E7EB'
 rcParams['axes.labelcolor'] = COLOR_PRIMARY
-rcParams['axes.titlesize'] = 16
+rcParams['axes.titlesize'] = 14
 rcParams['axes.titleweight'] = 'bold'
-rcParams['axes.labelsize'] = 11
+rcParams['axes.labelsize'] = 10
 rcParams['axes.labelweight'] = 'bold'
 rcParams['xtick.color'] = '#34495E'
 rcParams['ytick.color'] = '#34495E'
+rcParams['xtick.labelsize'] = 9
+rcParams['ytick.labelsize'] = 9
 rcParams['grid.color'] = '#E5E7EB'
 rcParams['grid.alpha'] = 0.6
 rcParams['text.color'] = COLOR_PRIMARY
+rcParams['figure.dpi'] = 100
+rcParams['savefig.dpi'] = 100
+rcParams['savefig.bbox'] = 'tight'
+rcParams['figure.constrained_layout.use'] = True
 
-BASE = Path("../")
+def find_project_root() -> Path:
+    """Locate repository root regardless of Quarto's working directory."""
+    start = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+    for candidate in (start,) + tuple(start.parents):
+        if (candidate / "data" / "analysis").exists():
+            return candidate
+    raise FileNotFoundError("Could not locate project root containing data/analysis directory.")
+
+BASE = find_project_root()
 
 def load_csv(path: str) -> pd.DataFrame:
     fp = BASE / path
@@ -150,7 +192,7 @@ def cal_state_table():
 
 # Overview
 
-This report analyzes student-AI interactions from the Udhyam learning platform. The analysis examines message patterns, sentiment, topics, and conversation dynamics to understand how students engage with the AI assistant.
+This report analyzes student-AI interactions from the Udhyam learning platform. The analysis examines message patterns, sentiment, topics, and conversation dynamics to understand how students engage with the AI assistant. 
 
 ```{python}
 #| output: asis
@@ -180,14 +222,15 @@ for finding in findings:
 
 ```{python}
 #| label: fig-daily-volume
-#| fig-cap: "Figure 1: Daily user message volume over time"
-fig, ax = plt.subplots(figsize=(10, 6))
+#| fig-cap: "Daily user message volume over time"
+fig, ax = plt.subplots(figsize=(8, 4.5))
 if not timeline_daily.empty:
     sns.lineplot(data=timeline_daily, x="date", y="messages", marker="o",
                  color=COLOR_USER, linewidth=2.5, markersize=8, ax=ax)
-    ax.set_title("Daily User Message Volume", fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
-    ax.set_xlabel("Date", fontweight='bold', fontsize=11)
-    ax.set_ylabel("Number of Messages", fontweight='bold', fontsize=11)
+    ax.set_title("Daily User Message Volume", fontweight='bold', fontsize=14, color=COLOR_PRIMARY)
+    ax.set_xlabel("Date", fontweight='bold', fontsize=10)
+    ax.set_ylabel("Number of Messages", fontweight='bold', fontsize=10)
+    ax.set_ylim(bottom=0)
     plt.xticks(rotation=45, ha="right")
     ax.grid(True, alpha=0.3)
 else:
@@ -205,15 +248,15 @@ Daily message volume shows the temporal distribution of student engagement with 
 
 ```{python}
 #| label: fig-hourly-distribution
-#| fig-cap: "Figure 2: Hourly distribution of user messages throughout the day"
-fig, ax = plt.subplots(figsize=(10, 6))
+#| fig-cap: "Hourly distribution of user messages throughout the day"
+fig, ax = plt.subplots(figsize=(8, 4.5))
 if not timeline_hourly.empty:
     sns.barplot(data=timeline_hourly, x="hour", y="messages",
                 color=COLOR_USER, alpha=0.8, ax=ax)
     ax.set_title("Hourly Distribution of User Messages",
-                 fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
-    ax.set_xlabel("Hour of Day", fontweight='bold', fontsize=11)
-    ax.set_ylabel("Number of Messages", fontweight='bold', fontsize=11)
+                 fontweight='bold', fontsize=14, color=COLOR_PRIMARY)
+    ax.set_xlabel("Hour of Day", fontweight='bold', fontsize=10)
+    ax.set_ylabel("Number of Messages", fontweight='bold', fontsize=10)
     ax.grid(True, alpha=0.3, axis='y')
 
     # Add value labels on bars
@@ -234,7 +277,7 @@ This distribution reveals when students are most active in using the platform th
 
 ```{python}
 #| label: tbl-message-stats
-#| tbl-cap: "Table 1: Summary statistics for message activity"
+#| tbl-cap: "Summary statistics for message activity"
 from IPython.display import display, Markdown
 
 if not message_stats.empty:
@@ -253,7 +296,7 @@ CAL (Conversational AI Learning) States represent different stages or contexts o
 
 ```{python}
 #| label: tbl-cal-state
-#| tbl-cap: "Table 2: CAL State distribution with message counts and percentages"
+#| tbl-cap: "CAL State distribution with message counts and percentages"
 from IPython.display import display, Markdown
 
 cal_table = cal_state_table()
@@ -271,8 +314,8 @@ else:
 
 ```{python}
 #| label: fig-cal-states
-#| fig-cap: "Figure 3: Top 10 CAL states by message volume"
-fig, ax = plt.subplots(figsize=(10, 6))
+#| fig-cap: "Top 10 CAL states by message volume"
+fig, ax = plt.subplots(figsize=(8, 5.5))
 if not cal_state_counts.empty:
     top_states = cal_state_counts.head(10)
     bars = ax.barh(range(len(top_states)), top_states['message_count'],
@@ -280,9 +323,9 @@ if not cal_state_counts.empty:
     ax.set_yticks(range(len(top_states)))
     ax.set_yticklabels(top_states['cal_state'])
     ax.set_title("Top CAL States by Message Volume",
-                 fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
-    ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=11)
-    ax.set_ylabel("CAL State", fontweight='bold', fontsize=11)
+                 fontweight='bold', fontsize=14, color=COLOR_PRIMARY)
+    ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=10)
+    ax.set_ylabel("CAL State", fontweight='bold', fontsize=10)
     ax.grid(True, alpha=0.3, axis='x')
 
     # Add value labels
@@ -319,11 +362,22 @@ Messages are analyzed for emotional tone and classified into sentiment categorie
 - **AI sentiment**: Whether the AI maintains an appropriate, supportive tone
 - **Interaction quality**: The overall emotional dynamic of conversations
 
+**Technical methodology:**
+
+The sentiment analysis is performed using transformer-based natural language processing models. Each message is processed through the following pipeline:
+
+1. **Text preprocessing**: Messages are cleaned and normalized, preserving emotionally significant elements like punctuation and capitalization
+2. **Model inference**: A pre-trained sentiment classification model (typically BERT-based or similar transformer architecture) analyzes the text and assigns probability scores to each sentiment category
+3. **Classification**: Messages are labeled as Positive, Neutral, or Negative based on the highest probability score
+4. **Aggregation**: Results are grouped by message role (user vs. assistant) to compare sentiment patterns
+
+The model has been fine-tuned on conversational text data to better capture the nuances of educational interactions, including informal language, code snippets, and domain-specific terminology common in learning platforms.
+
 ## 3.1 Sentiment Distribution
 
 ```{python}
 #| label: tbl-sentiment-counts
-#| tbl-cap: "Table 3: Sentiment distribution by message role"
+#| tbl-cap: "Sentiment distribution by message role"
 from IPython.display import display, Markdown
 
 sentiment_long = pd.concat([
@@ -352,8 +406,8 @@ else:
 
 ```{python}
 #| label: fig-sentiment-comparison
-#| fig-cap: "Figure 4: Sentiment distribution comparison between user and AI messages"
-fig, ax = plt.subplots(figsize=(10, 6))
+#| fig-cap: "Sentiment distribution comparison between user and AI messages"
+fig, ax = plt.subplots(figsize=(8, 4.5))
 if not sentiment_counts.empty:
     # Map sentiment labels to colors
     sentiment_colors = {
@@ -381,9 +435,9 @@ if not sentiment_counts.empty:
            color=COLOR_AI, alpha=0.8)
 
     ax.set_title("Sentiment Distribution by Role",
-                 fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
-    ax.set_xlabel("Sentiment", fontweight='bold', fontsize=11)
-    ax.set_ylabel("Number of Messages", fontweight='bold', fontsize=11)
+                 fontweight='bold', fontsize=14, color=COLOR_PRIMARY)
+    ax.set_xlabel("Sentiment", fontweight='bold', fontsize=10)
+    ax.set_ylabel("Number of Messages", fontweight='bold', fontsize=10)
     ax.set_xticks(x)
     ax.set_xticklabels(user_data['sentiment_label'].str.capitalize())
     ax.legend(title='Role', fontsize=10, title_fontsize=10)
@@ -407,7 +461,7 @@ This comparison reveals whether users and the AI assistant maintain different em
 
 ```{python}
 #| label: tbl-sentiment-overview
-#| tbl-cap: "Table 4: Overall sentiment statistics"
+#| tbl-cap: "Overall sentiment statistics"
 from IPython.display import display, Markdown
 
 if not sentiment_overview.empty:
@@ -418,9 +472,9 @@ else:
 
 ---
 
-# Part 4: Topic Analysis {.tabset}
+# Part 4: Topic Modeling {.tabset}
 
-Topic modeling identifies the main themes and subjects discussed in conversations. This analysis reveals what students talk about most frequently and how the AI responds.
+Topic modeling identifies the main themes and subjects discussed in conversations. This analysis reveals what students talk about most frequently and how the AI responds. 
 
 ## Understanding Topic Modeling
 
@@ -434,67 +488,54 @@ Topic modeling uses natural language processing to automatically discover themes
 
 This helps identify common student questions, concerns, and the AI's response patterns.
 
-## 4.1 Topic Distribution Table
+**Technical methodology:**
 
+The topic modeling is performed using BERTopic, a modern topic modeling technique that leverages transformer embeddings and clustering algorithms:
+
+1. **Text embedding**: Each message is converted into a high-dimensional semantic vector using sentence transformers (SBERT). These embeddings capture the contextual meaning of the text, not just keyword frequency
+2. **Dimensionality reduction**: UMAP (Uniform Manifold Approximation and Projection) reduces the embedding dimensions while preserving semantic relationships, making clusters more identifiable
+3. **Clustering**: HDBSCAN (Hierarchical Density-Based Spatial Clustering) groups semantically similar messages together based on their embeddings. Unlike traditional methods like LDA, this approach doesn't require pre-specifying the number of topics
+4. **Topic representation**: For each cluster, c-TF-IDF (class-based Term Frequency-Inverse Document Frequency) extracts the most representative keywords that distinguish one topic from others
+5. **Role separation**: Topics are analyzed separately for user messages and AI messages to understand the conversation dynamics from both perspectives
+
+This approach provides more coherent and interpretable topics compared to traditional methods, especially for short conversational messages where context is crucial.
+
+## 4.1 User Message Topics
+
+::: {.figure-scroll}
 ```{python}
-#| label: tbl-topic-keywords
-#| tbl-cap: "Table 5: Top topics identified across user and AI messages"
-from IPython.display import display, Markdown
-
-if not topic_keywords.empty:
-    topic_display = topic_keywords.sort_values(
-        ["message_role", "message_count"],
-        ascending=[True, False]
-    ).copy()
-    topic_display['message_role'] = topic_display['message_role'].str.capitalize()
-    topic_display.columns = ['Role', 'Topic ID', 'Keywords', 'Message Count']
-    display(Markdown(topic_display.head(20).to_markdown(index=False)))
-else:
-    print("No topic data available")
-```
-
-## 4.2 Topic Visualization
-
-```{python}
-#| label: fig-topics
-#| fig-cap: "Figure 5: Top 10 topics by message role"
+#| label: fig-user-topics
+#| fig-cap: "Top 10 topics in user messages"
 fig, ax = plt.subplots(figsize=(12, 8))
 if not topic_keywords.empty:
-    # Get top 10 topics for each role
-    top_topics = topic_keywords.groupby("message_role").head(10).copy()
-    top_topics['message_role'] = top_topics['message_role'].str.capitalize()
+    # Get top 10 topics for user messages
+    user_topics = topic_keywords[topic_keywords['message_role'] == 'user'].sort_values('message_count', ascending=False).head(10)
 
-    # Sort by message count for better visualization
-    top_topics = top_topics.sort_values(['message_role', 'message_count'], ascending=[True, True])
+    if not user_topics.empty:
+        # Sort by message count for better visualization
+        user_topics = user_topics.sort_values('message_count', ascending=True)
 
-    # Create horizontal bar chart
-    y_pos = np.arange(len(top_topics))
-    colors = [COLOR_USER if role.lower() == 'user' else COLOR_AI
-              for role in top_topics['message_role']]
+        # Create horizontal bar chart
+        y_pos = np.arange(len(user_topics))
+        bars = ax.barh(y_pos, user_topics['message_count'], color=COLOR_USER, alpha=0.8)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(user_topics['keywords'], fontsize=9)
+        ax.set_title("Top Topics in User Messages",
+                     fontweight='bold', fontsize=14, color=COLOR_PRIMARY)
+        ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=10)
+        ax.set_ylabel("Topic Keywords", fontweight='bold', fontsize=10)
+        ax.grid(True, alpha=0.3, axis='x')
 
-    bars = ax.barh(y_pos, top_topics['message_count'], color=colors, alpha=0.8)
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(top_topics['keywords'], fontsize=9)
-    ax.set_title("Top Topics by Message Role",
-                 fontweight='bold', fontsize=16, color=COLOR_PRIMARY)
-    ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=11)
-    ax.set_ylabel("Topic Keywords", fontweight='bold', fontsize=11)
-    ax.grid(True, alpha=0.3, axis='x')
-
-    # Add value labels
-    for i, (idx, row) in enumerate(top_topics.iterrows()):
-        ax.text(row['message_count'] + max(top_topics['message_count']) * 0.01,
-                i, f"{row['message_count']:,}",
-                va='center', fontsize=8)
-
-    # Add legend
-    from matplotlib.patches import Patch
-    legend_elements = [
-        Patch(facecolor=COLOR_USER, alpha=0.8, label='User'),
-        Patch(facecolor=COLOR_AI, alpha=0.8, label='Assistant')
-    ]
-    ax.legend(handles=legend_elements, title='Role', loc='lower right',
-              fontsize=10, title_fontsize=10)
+        # Add value labels
+        for i, (idx, row) in enumerate(user_topics.iterrows()):
+            ax.text(row['message_count'] + max(user_topics['message_count']) * 0.01,
+                    i, f"{row['message_count']:,}",
+                    va='center', fontsize=8)
+    else:
+        ax.text(0.5, 0.5, "No user topics identified",
+                ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
+        ax.set_xticks([])
+        ax.set_yticks([])
 else:
     ax.text(0.5, 0.5, "Topic modeling did not return any clusters",
             ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
@@ -503,8 +544,144 @@ else:
 plt.tight_layout()
 plt.show()
 ```
+:::
 
-The visualization shows the most frequent discussion topics, helping identify what students need help with most often.
+The user topic visualization reveals what students are asking about and discussing most frequently. These topics represent the primary concerns, questions, and areas where students seek assistance from the AI.
+
+## 4.2 AI Message Topics
+
+::: {.figure-scroll}
+```{python}
+#| label: fig-ai-topics
+#| fig-cap: "Top 10 topics in AI messages"
+fig, ax = plt.subplots(figsize=(12, 8))
+if not topic_keywords.empty:
+    # Get top 10 topics for AI messages
+    ai_topics = topic_keywords[topic_keywords['message_role'] == 'assistant'].sort_values('message_count', ascending=False).head(10)
+
+    if not ai_topics.empty:
+        # Sort by message count for better visualization
+        ai_topics = ai_topics.sort_values('message_count', ascending=True)
+
+        # Create horizontal bar chart
+        y_pos = np.arange(len(ai_topics))
+        bars = ax.barh(y_pos, ai_topics['message_count'], color=COLOR_AI, alpha=0.8)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(ai_topics['keywords'], fontsize=9)
+        ax.set_title("Top Topics in AI Messages",
+                     fontweight='bold', fontsize=14, color=COLOR_PRIMARY)
+        ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=10)
+        ax.set_ylabel("Topic Keywords", fontweight='bold', fontsize=10)
+        ax.grid(True, alpha=0.3, axis='x')
+
+        # Add value labels
+        for i, (idx, row) in enumerate(ai_topics.iterrows()):
+            ax.text(row['message_count'] + max(ai_topics['message_count']) * 0.01,
+                    i, f"{row['message_count']:,}",
+                    va='center', fontsize=8)
+    else:
+        ax.text(0.5, 0.5, "No AI topics identified",
+                ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
+        ax.set_xticks([])
+        ax.set_yticks([])
+else:
+    ax.text(0.5, 0.5, "Topic modeling did not return any clusters",
+            ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
+    ax.set_xticks([])
+    ax.set_yticks([])
+plt.tight_layout()
+plt.show()
+```
+:::
+
+The AI topic visualization shows the main themes in the assistant's responses. These topics reflect how the AI is addressing student needs and what types of support it provides most frequently.
+
+## 4.3 Interpreting Topic Patterns
+
+**Understanding User Topics:**
+
+The topics identified in user messages reveal the primary areas where students engage with the platform:
+
+```{python}
+#| output: asis
+if not topic_keywords.empty:
+    user_topics = topic_keywords[topic_keywords['message_role'] == 'user'].sort_values('message_count', ascending=False).head(5)
+    if not user_topics.empty:
+        print("The most prominent user topics suggest the following patterns:\n")
+        for idx, row in user_topics.iterrows():
+            keywords = row['keywords']
+            count = row['message_count']
+            topic_id = row['topic_id']
+
+            # Provide interpretation based on keyword patterns
+            interpretation = ""
+            if any(word in keywords.lower() for word in ['help', 'question', 'understand', 'explain']):
+                interpretation = "Students frequently seek clarification and explanations"
+            elif any(word in keywords.lower() for word in ['business', 'startup', 'idea', 'plan']):
+                interpretation = "Entrepreneurship and business planning are core discussion areas"
+            elif any(word in keywords.lower() for word in ['problem', 'issue', 'error', 'wrong']):
+                interpretation = "Technical troubleshooting and problem-solving requests are common"
+            elif any(word in keywords.lower() for word in ['learn', 'course', 'lesson', 'module']):
+                interpretation = "Course navigation and learning progression questions"
+            elif any(word in keywords.lower() for word in ['thanks', 'thank', 'ok', 'yes']):
+                interpretation = "Acknowledgments and conversational continuity"
+            else:
+                interpretation = "Specific domain-related discussions and inquiries"
+
+            print(f"- **Topic {topic_id}** ({count} messages): *{keywords}* - {interpretation}\n")
+    else:
+        print("No user topics available for interpretation.\n")
+else:
+    print("No topic data available.\n")
+```
+
+**Understanding AI Topics:**
+
+The topics in AI responses reveal how the assistant supports student learning:
+
+```{python}
+#| output: asis
+if not topic_keywords.empty:
+    ai_topics = topic_keywords[topic_keywords['message_role'] == 'assistant'].sort_values('message_count', ascending=False).head(5)
+    if not ai_topics.empty:
+        print("The most prominent AI response topics indicate:\n")
+        for idx, row in ai_topics.iterrows():
+            keywords = row['keywords']
+            count = row['message_count']
+            topic_id = row['topic_id']
+
+            # Provide interpretation based on keyword patterns
+            interpretation = ""
+            if any(word in keywords.lower() for word in ['explain', 'understand', 'example', 'concept']):
+                interpretation = "Pedagogical explanations and conceptual guidance"
+            elif any(word in keywords.lower() for word in ['business', 'market', 'customer', 'value']):
+                interpretation = "Business strategy and entrepreneurial advice"
+            elif any(word in keywords.lower() for word in ['step', 'process', 'how', 'guide']):
+                interpretation = "Procedural instructions and step-by-step guidance"
+            elif any(word in keywords.lower() for word in ['question', 'think', 'consider', 'reflect']):
+                interpretation = "Socratic questioning to promote critical thinking"
+            elif any(word in keywords.lower() for word in ['great', 'good', 'excellent', 'progress']):
+                interpretation = "Encouragement and positive reinforcement"
+            else:
+                interpretation = "Contextual support and domain-specific responses"
+
+            print(f"- **Topic {topic_id}** ({count} messages): *{keywords}* - {interpretation}\n")
+    else:
+        print("No AI topics available for interpretation.\n")
+else:
+    print("No topic data available.\n")
+```
+
+**Topic Alignment and Pedagogical Insights:**
+
+The relationship between user and AI topics reveals the quality of conversational alignment:
+
+- **Responsive teaching**: When AI topics mirror user topics with added depth, it indicates the assistant is directly addressing student needs
+- **Proactive guidance**: Topics in AI messages that extend beyond immediate user questions suggest the assistant is providing broader context and anticipatory support
+- **Knowledge gaps**: Frequent topics about basic concepts may indicate areas where students need more foundational instruction or clearer explanations
+- **Engagement patterns**: The diversity and specificity of topics reflect how deeply students are engaging with course material
+
+By analyzing these patterns over time, educators can identify which topics require enhanced content, where students struggle most, and how to optimize the AI's pedagogical approach.
 
 ---
 
