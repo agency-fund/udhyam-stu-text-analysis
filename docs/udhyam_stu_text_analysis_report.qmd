@@ -48,6 +48,7 @@ img, .quarto-figure img {
 ```{python}
 #| label: setup
 import json
+import re
 from pathlib import Path
 from textwrap import fill
 import pandas as pd
@@ -117,6 +118,33 @@ sentiment_ai = load_csv("data/analysis/sentiment_ai.csv")
 sentiment_overview = load_csv("data/analysis/sentiment_overview.csv")
 topic_keywords = load_csv("data/analysis/topic_keywords.csv")
 
+# Add intent_label column if missing (for backward compatibility)
+if 'intent_label' not in topic_keywords.columns:
+    # Try to load from topic_examples files as fallback
+    try:
+        topic_examples_user = load_csv("data/analysis/topic_examples_user.csv")
+        topic_examples_assistant = load_csv("data/analysis/topic_examples_assistant.csv")
+
+        # Create a mapping from keywords to intent_label by matching keywords exactly
+        label_map = {}
+        for df, role in [(topic_examples_user, 'user'), (topic_examples_assistant, 'assistant')]:
+            if 'intent_label' in df.columns and 'keywords' in df.columns:
+                for idx, row in df.iterrows():
+                    # Use keywords as key along with role
+                    label_map[(role, str(row['keywords']))] = row['intent_label']
+
+        # Apply the mapping by matching keywords
+        def get_intent_label(row):
+            key = (row['message_role'], str(row['keywords']))
+            return label_map.get(key, f"Topic {row.get('topic_id', '?')}")
+
+        topic_keywords['intent_label'] = topic_keywords.apply(get_intent_label, axis=1)
+    except Exception as e:
+        # If fallback fails, just use topic_id as label
+        topic_keywords['intent_label'] = topic_keywords.apply(
+            lambda row: f"Topic {row.get('topic_id', '?')}", axis=1
+        )
+
 messages = load_csv("data/cleaned/messages_translated.csv")
 messages["datetime"] = pd.to_datetime(messages["datetime"], errors="coerce")
 messages = messages.dropna(subset=["datetime"])
@@ -126,6 +154,9 @@ messages["hour"] = messages["datetime"].dt.hour
 
 user_msgs = messages[["datetime", "date", "hour", "whatsapp_id", "user_msg_en", "cal_state"]].rename(columns={"user_msg_en": "message"})
 assistant_msgs = messages[["datetime", "date", "hour", "whatsapp_id", "ai_msg_en"]].rename(columns={"ai_msg_en": "message"})
+
+message_topics_user = load_csv("data/analysis/message_topics_user.csv")
+message_topics_assistant = load_csv("data/analysis/message_topics_assistant.csv")
 
 timeline_daily = (
     user_msgs.groupby("date").size().reset_index(name="messages")
@@ -187,6 +218,68 @@ def cal_state_table():
         return pd.DataFrame(columns=["cal_state", "message_count"])
     cal_state_counts["share_pct"] = cal_state_counts["message_count"] / cal_state_counts["message_count"].sum() * 100
     return cal_state_counts
+
+
+def _keyword_variants(keywords: str) -> list[str]:
+    """Extract keyword variants including underscore replacements and common inflections."""
+    tokens = [token.strip() for token in (keywords or "").split(",") if token.strip()]
+    variants = set()
+    for token in tokens:
+        base = token.lower()
+        variants.add(base)
+        variants.add(base.replace("_", " "))
+
+        # Add common inflections to catch lemmatization mismatches
+        if not base.endswith(('s', 'ed', 'ing', 'tion', 'ment')):
+            variants.add(base + "s")
+            variants.add(base + "ed")
+            variants.add(base + "ing")
+
+        # Remove trailing 'e' before adding -ed/-ing
+        if base.endswith('e') and len(base) > 2:
+            stem = base[:-1]
+            variants.add(stem + "ed")
+            variants.add(stem + "ing")
+
+        # Handle -ion/-ment variations
+        if base.endswith('e'):
+            variants.add(base[:-1] + "ion")
+        if not base.endswith('ment'):
+            variants.add(base + "ment")
+
+    return sorted([variant for variant in variants if variant], key=len, reverse=True)
+
+
+def highlight_keywords(text: str, keywords: str) -> str:
+    if not isinstance(text, str) or not text.strip():
+        return ""
+    highlighted = text
+    for term in _keyword_variants(keywords):
+        # Use word boundaries to match whole words, handle lemmatization variants
+        pattern = re.compile(rf"(?i)\b({re.escape(term)})\b")
+        highlighted = pattern.sub(r"<mark>\1</mark>", highlighted)
+    return highlighted
+
+
+def sample_topic_examples(assign_df: pd.DataFrame, top_topics: pd.DataFrame, per_topic: int = 3) -> list[dict]:
+    examples: list[dict] = []
+    for _, topic_row in top_topics.iterrows():
+        topic_id = int(topic_row.get("topic_id", topic_row.get("Topic", -1)))
+        intent_label = str(topic_row.get("intent_label", f"Topic {topic_id}"))
+        keywords = str(topic_row.get("keywords", topic_row.get("Name", "")))
+        subset = assign_df[assign_df["topic_id"] == topic_id]
+        if "original_message" in subset:
+            sample_msgs = subset["original_message"].dropna().astype(str).head(per_topic).tolist()
+        else:
+            sample_msgs = []
+        highlighted = [highlight_keywords(msg, keywords) for msg in sample_msgs if msg]
+        examples.append({
+            "topic_id": topic_id,
+            "intent_label": intent_label,
+            "keywords": keywords,
+            "examples": highlighted,
+        })
+    return examples
 
 ``` 
 
@@ -537,11 +630,13 @@ if not topic_keywords.empty:
         y_pos = np.arange(len(user_topics))
         bars = ax.barh(y_pos, user_topics['message_count'], color=COLOR_USER, alpha=0.8)
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(user_topics['keywords'], fontsize=9)
+        # Use intent_label if available, otherwise fall back to keywords
+        labels = user_topics['intent_label'] if 'intent_label' in user_topics.columns else user_topics['keywords']
+        ax.set_yticklabels(labels, fontsize=9)
         ax.set_title("Top Topics in User Messages",
                      fontweight='bold', fontsize=14, color=COLOR_PRIMARY)
         ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=10)
-        ax.set_ylabel("Topic Keywords", fontweight='bold', fontsize=10)
+        ax.set_ylabel("Topic", fontweight='bold', fontsize=10)
         ax.grid(True, alpha=0.3, axis='x')
 
         # Add value labels
@@ -585,11 +680,13 @@ if not topic_keywords.empty:
         y_pos = np.arange(len(ai_topics))
         bars = ax.barh(y_pos, ai_topics['message_count'], color=COLOR_AI, alpha=0.8)
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(ai_topics['keywords'], fontsize=9)
+        # Use intent_label if available, otherwise fall back to keywords
+        labels = ai_topics['intent_label'] if 'intent_label' in ai_topics.columns else ai_topics['keywords']
+        ax.set_yticklabels(labels, fontsize=9)
         ax.set_title("Top Topics in AI Messages",
                      fontweight='bold', fontsize=14, color=COLOR_PRIMARY)
         ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=10)
-        ax.set_ylabel("Topic Keywords", fontweight='bold', fontsize=10)
+        ax.set_ylabel("Topic", fontweight='bold', fontsize=10)
         ax.grid(True, alpha=0.3, axis='x')
 
         # Add value labels
@@ -616,78 +713,71 @@ The AI topic visualization shows the main themes in the assistant's responses. T
 
 ## 4.3 Interpreting Topic Patterns
 
-**Understanding User Topics:**
+To ground the topic labels, the tables below show real message excerpts with topic keywords highlighted. This makes interpretations like “Casual affirmations” tangible by displaying the language patterns that define each cluster.
 
-The topics identified in user messages reveal the primary areas where students engage with the platform:
+Notes:
+
+- Highlights are derived from each topic’s keyword list. Because messages are lemmatized during preprocessing, highlighted forms may include closely related surface variants.
+- Examples come directly from the translated messages (the English text), giving a clear view of the student or AI phrasing that BERTopic grouped together.
+
+### User topic examples
 
 ```{python}
-#| output: asis
-if not topic_keywords.empty:
-    user_topics = topic_keywords[topic_keywords['message_role'] == 'user'].sort_values('message_count', ascending=False).head(5)
-    if not user_topics.empty:
-        print("The most prominent user topics suggest the following patterns:\n")
-        for idx, row in user_topics.iterrows():
-            keywords = row['keywords']
-            count = row['message_count']
-            topic_id = row['topic_id']
+from IPython.display import HTML, display
 
-            # Provide interpretation based on keyword patterns
-            interpretation = ""
-            if any(word in keywords.lower() for word in ['help', 'question', 'understand', 'explain']):
-                interpretation = "Students frequently seek clarification and explanations"
-            elif any(word in keywords.lower() for word in ['business', 'startup', 'idea', 'plan']):
-                interpretation = "Entrepreneurship and business planning are core discussion areas"
-            elif any(word in keywords.lower() for word in ['problem', 'issue', 'error', 'wrong']):
-                interpretation = "Technical troubleshooting and problem-solving requests are common"
-            elif any(word in keywords.lower() for word in ['learn', 'course', 'lesson', 'module']):
-                interpretation = "Course navigation and learning progression questions"
-            elif any(word in keywords.lower() for word in ['thanks', 'thank', 'ok', 'yes']):
-                interpretation = "Acknowledgments and conversational continuity"
-            else:
-                interpretation = "Specific domain-related discussions and inquiries"
+if not topic_keywords.empty and not message_topics_user.empty:
+    top_user = (
+        topic_keywords[topic_keywords['message_role'] == 'user']
+        .sort_values('message_count', ascending=False)
+        .head(5)
+    )
+    rows = sample_topic_examples(message_topics_user, top_user, per_topic=3)
 
-            print(f"- **Topic {topic_id}** ({count} messages): *{keywords}* - {interpretation}\n")
-    else:
-        print("No user topics available for interpretation.\n")
+    html_parts = [
+        "<table class='table table-sm'>",
+        "<thead><tr><th style='width:20%'>Topic</th><th style='width:30%'>Keywords</th><th>Example messages</th></tr></thead>",
+        "<tbody>",
+    ]
+    for row in rows:
+        examples_html = "<ul>" + "".join(f"<li>{example}</li>" for example in row['examples']) + "</ul>"
+        topic_display = f"{row['topic_id']}: {row['intent_label']}"
+        html_parts.append(
+            f"<tr><td><b>{topic_display}</b></td><td><i>{row['keywords']}</i></td><td>{examples_html}</td></tr>"
+        )
+    html_parts.append("</tbody></table>")
+    display(HTML("\n".join(html_parts)))
 else:
-    print("No topic data available.\n")
+    print("No user topic examples available.")
 ```
 
-**Understanding AI Topics:**
-
-The topics in AI responses reveal how the assistant supports student learning:
+### AI topic examples
 
 ```{python}
-#| output: asis
-if not topic_keywords.empty:
-    ai_topics = topic_keywords[topic_keywords['message_role'] == 'assistant'].sort_values('message_count', ascending=False).head(5)
-    if not ai_topics.empty:
-        print("The most prominent AI response topics indicate:\n")
-        for idx, row in ai_topics.iterrows():
-            keywords = row['keywords']
-            count = row['message_count']
-            topic_id = row['topic_id']
+from IPython.display import HTML, display
 
-            # Provide interpretation based on keyword patterns
-            interpretation = ""
-            if any(word in keywords.lower() for word in ['explain', 'understand', 'example', 'concept']):
-                interpretation = "Pedagogical explanations and conceptual guidance"
-            elif any(word in keywords.lower() for word in ['business', 'market', 'customer', 'value']):
-                interpretation = "Business strategy and entrepreneurial advice"
-            elif any(word in keywords.lower() for word in ['step', 'process', 'how', 'guide']):
-                interpretation = "Procedural instructions and step-by-step guidance"
-            elif any(word in keywords.lower() for word in ['question', 'think', 'consider', 'reflect']):
-                interpretation = "Socratic questioning to promote critical thinking"
-            elif any(word in keywords.lower() for word in ['great', 'good', 'excellent', 'progress']):
-                interpretation = "Encouragement and positive reinforcement"
-            else:
-                interpretation = "Contextual support and domain-specific responses"
+if not topic_keywords.empty and not message_topics_assistant.empty:
+    top_ai = (
+        topic_keywords[topic_keywords['message_role'] == 'assistant']
+        .sort_values('message_count', ascending=False)
+        .head(5)
+    )
+    rows = sample_topic_examples(message_topics_assistant, top_ai, per_topic=3)
 
-            print(f"- **Topic {topic_id}** ({count} messages): *{keywords}* - {interpretation}\n")
-    else:
-        print("No AI topics available for interpretation.\n")
+    html_parts = [
+        "<table class='table table-sm'>",
+        "<thead><tr><th style='width:20%'>Topic</th><th style='width:30%'>Keywords</th><th>Example messages</th></tr></thead>",
+        "<tbody>",
+    ]
+    for row in rows:
+        examples_html = "<ul>" + "".join(f"<li>{example}</li>" for example in row['examples']) + "</ul>"
+        topic_display = f"{row['topic_id']}: {row['intent_label']}"
+        html_parts.append(
+            f"<tr><td><b>{topic_display}</b></td><td><i>{row['keywords']}</i></td><td>{examples_html}</td></tr>"
+        )
+    html_parts.append("</tbody></table>")
+    display(HTML("\n".join(html_parts)))
 else:
-    print("No topic data available.\n")
+    print("No AI topic examples available.")
 ```
 
 **Topic Alignment and Pedagogical Insights:**
