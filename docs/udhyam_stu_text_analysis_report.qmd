@@ -285,23 +285,37 @@ def sample_topic_examples(assign_df: pd.DataFrame, top_topics: pd.DataFrame, per
 
 # Overview
 
-This report analyzes student-AI interactions from the Udhyam learning platform. The analysis examines message patterns, sentiment, topics, and conversation dynamics to understand how students engage with the AI assistant. 
+This report analyzes student-AI interactions from the Udhyam learning platform. The analysis examines message patterns, sentiment, topics, and conversation dynamics to understand how students engage with the AI assistant.
 
 ```{python}
 #| output: asis
-print(f"**Data Scope:** {overview_sentence}")
+print(f"{overview_sentence}")
 ```
 
 ## Key Findings
 
 ```{python}
 #| output: asis
-findings = [
-    f"**Sentiment Patterns (User):** {sentiment_user_sentence}",
-    f"**Sentiment Patterns (Assistant):** {sentiment_ai_sentence}",
-    f"**Key User Topics:**\n\n{user_topic_sentence}",
-    f"**Assistant Response Themes:**\n\n{assistant_topic_sentence}",
-]
+# Create full sentence summaries for key findings
+findings = []
+
+# Sentiment patterns
+user_sentiment_text = sentiment_user_sentence.replace("User messages most often express: ", "").lower() if sentiment_user_sentence else ""
+ai_sentiment_text = sentiment_ai_sentence.replace("Assistant messages most often express: ", "").lower() if sentiment_ai_sentence else ""
+
+if user_sentiment_text:
+    findings.append(f"User messages predominantly express {user_sentiment_text}, indicating their overall emotional tone during interactions with the AI assistant.")
+
+if ai_sentiment_text:
+    findings.append(f"The AI assistant maintains a tone that is primarily {ai_sentiment_text}, reflecting consistent pedagogical support in its responses.")
+
+# Topic findings
+if user_topic_sentence:
+    findings.append(f"Students engage most frequently with topics related to: {user_topic_sentence.split(chr(10))[0].replace('Topic ', '').lower()}. These represent the primary areas where students seek AI assistance and guidance.")
+
+if assistant_topic_sentence:
+    findings.append(f"The AI assistant's responses are concentrated in areas including {assistant_topic_sentence.split(chr(10))[0].replace('Topic ', '').lower()}, showing focused coverage of student needs.")
+
 for finding in findings:
     if finding:
         print(f"{finding}\n\n")
@@ -366,30 +380,11 @@ plt.show()
 
 This distribution reveals when students are most active in using the platform throughout the day.
 
-## 1.3 Message Statistics
-
-```{python}
-#| label: tbl-message-stats
-#| tbl-cap: "Summary statistics for message activity"
-from IPython.display import display, Markdown
-
-if not message_stats.empty:
-    display(Markdown(message_stats.to_markdown(index=False)))
-else:
-    print("No message statistics available")
-```
-
----
-
-# Part 2: CAL State Engagement {.tabset}
-
-CAL (Conversational AI Learning) States represent different stages or contexts of student interactions with the AI assistant. This section analyzes which states generate the most engagement.
-
-## 2.1 State Distribution Table
+## 1.3 CAL State Distribution
 
 ```{python}
 #| label: tbl-cal-state
-#| tbl-cap: "CAL State distribution with message counts and percentages"
+#| tbl-cap: "State distribution with message counts and percentages"
 from IPython.display import display, Markdown
 
 cal_table = cal_state_table()
@@ -403,41 +398,20 @@ else:
     print("No CAL state data available")
 ```
 
-## 2.2 Top CAL States Visualization
+The table above shows which states generate the most engagement, indicating where students spend the most time and where the AI is most frequently engaged.
+
+## 1.4 Message Statistics
 
 ```{python}
-#| label: fig-cal-states
-#| fig-cap: "Top 10 CAL states by message volume"
-fig, ax = plt.subplots(figsize=(8, 5.5))
-if not cal_state_counts.empty:
-    top_states = cal_state_counts.head(10)
-    bars = ax.barh(range(len(top_states)), top_states['message_count'],
-                   color=COLOR_USER, alpha=0.8)
-    ax.set_yticks(range(len(top_states)))
-    ax.set_yticklabels(top_states['cal_state'])
-    ax.set_title("Top CAL States by Message Volume",
-                 fontweight='bold', fontsize=14, color=COLOR_PRIMARY)
-    ax.set_xlabel("Number of Messages", fontweight='bold', fontsize=10)
-    ax.set_ylabel("CAL State", fontweight='bold', fontsize=10)
-    ax.grid(True, alpha=0.3, axis='x')
+#| label: tbl-message-stats
+#| tbl-cap: "Summary statistics for message activity"
+from IPython.display import display, Markdown
 
-    # Add value labels
-    for i, (idx, row) in enumerate(top_states.iterrows()):
-        ax.text(row['message_count'] + max(top_states['message_count']) * 0.01,
-                i, f"{row['message_count']:,}",
-                va='center', fontsize=9)
-
-    ax.invert_yaxis()
+if not message_stats.empty:
+    display(Markdown(message_stats.to_markdown(index=False)))
 else:
-    ax.text(0.5, 0.5, "No CAL state data available",
-            ha="center", va="center", fontsize=12, color=COLOR_NEUTRAL)
-    ax.set_xticks([])
-    ax.set_yticks([])
-plt.tight_layout()
-plt.show()
+    print("No message statistics available")
 ```
-
-The distribution shows which learning states students spend the most time in, indicating where the AI is most frequently engaged.
 
 ---
 
@@ -466,13 +440,13 @@ The sentiment analysis is performed using transformer-based natural language pro
 
 The model has been fine-tuned on conversational text data to better capture the nuances of educational interactions, including informal language, code snippets, and domain-specific terminology common in learning platforms.
 
-## 3.1 Sentiment Distribution
+## 3.1 Sentiment Comparison
 
 ```{python}
-#| label: tbl-sentiment-counts
-#| tbl-cap: "Sentiment distribution by message role"
-from IPython.display import display, Markdown
+#| label: fig-sentiment-comparison
+#| fig-cap: "Sentiment distribution comparison between user and AI messages"
 
+# Create sentiment_counts for visualization
 sentiment_long = pd.concat([
     sentiment_user.assign(role="user"),
     sentiment_ai.assign(role="assistant"),
@@ -482,24 +456,6 @@ sentiment_counts = (
     sentiment_long.groupby(["role", "sentiment_label"]).size().reset_index(name="messages")
 )
 
-if not sentiment_counts.empty:
-    # Calculate percentages
-    sentiment_display = sentiment_counts.copy()
-    sentiment_display['percentage'] = sentiment_display.groupby('role')['messages'].transform(
-        lambda x: (x / x.sum() * 100).round(1)
-    )
-    sentiment_display.columns = ['Role', 'Sentiment', 'Count', 'Percentage (%)']
-    sentiment_display['Role'] = sentiment_display['Role'].str.capitalize()
-    display(Markdown(sentiment_display.to_markdown(index=False)))
-else:
-    print("No sentiment data available")
-```
-
-## 3.2 Sentiment Comparison
-
-```{python}
-#| label: fig-sentiment-comparison
-#| fig-cap: "Sentiment distribution comparison between user and AI messages"
 fig, ax = plt.subplots(figsize=(8, 4.5))
 if not sentiment_counts.empty:
     # Map sentiment labels to colors
@@ -550,7 +506,7 @@ plt.show()
 
 This comparison reveals whether users and the AI assistant maintain different emotional tones during interactions.
 
-## 3.3 Overall Sentiment Summary
+## 3.2 Overall Sentiment Summary
 
 ```{python}
 #| label: tbl-sentiment-overview
@@ -565,7 +521,7 @@ else:
 
 ---
 
-# Part 4: Topic Modeling {.tabset}
+# Part 3: Topic Modeling {.tabset}
 
 Topic modeling identifies the main themes and subjects discussed in conversations. This analysis reveals what students talk about most frequently and how the AI responds. 
 
@@ -611,16 +567,16 @@ When OpenAI representation is enabled (using the `--use-openai-representation` f
 
 **When OpenAI refinement is NOT used** (default behavior), you'll see raw keyword lists extracted via c-TF-IDF, which represent the most statistically distinctive terms for each topic. These are more granular but require more manual interpretation to understand the broader theme.
 
-## 4.1 User Message Topics
+## 3.1 User Message Topics
 
 ::: {.figure-scroll}
 ```{python}
 #| label: fig-user-topics
-#| fig-cap: "Top 10 topics in user messages"
-fig, ax = plt.subplots(figsize=(12, 8))
+#| fig-cap: "Top 15 topics in user messages"
+fig, ax = plt.subplots(figsize=(12, 10))
 if not topic_keywords.empty:
-    # Get top 10 topics for user messages
-    user_topics = topic_keywords[topic_keywords['message_role'] == 'user'].sort_values('message_count', ascending=False).head(10)
+    # Get top 15 topics for user messages
+    user_topics = topic_keywords[topic_keywords['message_role'] == 'user'].sort_values('message_count', ascending=False).head(15)
 
     if not user_topics.empty:
         # Sort by message count for better visualization
@@ -661,16 +617,16 @@ plt.show()
 
 The user topic visualization reveals what students are asking about and discussing most frequently. These topics represent the primary concerns, questions, and areas where students seek assistance from the AI.
 
-## 4.2 AI Message Topics
+## 3.2 AI Message Topics
 
 ::: {.figure-scroll}
 ```{python}
 #| label: fig-ai-topics
-#| fig-cap: "Top 10 topics in AI messages"
-fig, ax = plt.subplots(figsize=(12, 8))
+#| fig-cap: "Top 15 topics in AI messages"
+fig, ax = plt.subplots(figsize=(12, 10))
 if not topic_keywords.empty:
-    # Get top 10 topics for AI messages
-    ai_topics = topic_keywords[topic_keywords['message_role'] == 'assistant'].sort_values('message_count', ascending=False).head(10)
+    # Get top 15 topics for AI messages
+    ai_topics = topic_keywords[topic_keywords['message_role'] == 'assistant'].sort_values('message_count', ascending=False).head(15)
 
     if not ai_topics.empty:
         # Sort by message count for better visualization
@@ -711,7 +667,7 @@ plt.show()
 
 The AI topic visualization shows the main themes in the assistant's responses. These topics reflect how the AI is addressing student needs and what types of support it provides most frequently.
 
-## 4.3 Interpreting Topic Patterns
+## 3.3 Interpreting Topic Patterns
 
 To ground the topic labels, the tables below show real message excerpts with topic keywords highlighted. This makes interpretations like “Casual affirmations” tangible by displaying the language patterns that define each cluster.
 
@@ -723,29 +679,46 @@ Notes:
 ### User topic examples
 
 ```{python}
-from IPython.display import HTML, display
+#| output: asis
+
+def _escape_markdown(text: str) -> str:
+    """Escape characters that break markdown tables."""
+    if not isinstance(text, str):
+        text = str(text)
+    return text.replace("|", "\\|").replace("\n", " ")
+
+def _render_topic_table(rows) -> str:
+    header = [
+        '::: {.tbl-colwidths="[0.15,0.20,0.65]"}',
+        '| Topic | Keywords | Example messages |',
+        '|:------|:---------|:------------------|',
+    ]
+    body = []
+    for row in rows:
+        topic_display = f"**{_escape_markdown(row['topic_id'])}: {_escape_markdown(row['intent_label'])}**"
+        keywords_display = f"*{_escape_markdown(row['keywords'])}*"
+        example_lines = "<br>".join(f"&bull; {_escape_markdown(example)}" for example in row['examples'])
+        body.append(f"| {topic_display} | {keywords_display} | {example_lines} |")
+    footer = [':::']
+    return "\n".join(header + body + footer)
 
 if not topic_keywords.empty and not message_topics_user.empty:
     top_user = (
         topic_keywords[topic_keywords['message_role'] == 'user']
         .sort_values('message_count', ascending=False)
-        .head(5)
+        .head(15)
     )
     rows = sample_topic_examples(message_topics_user, top_user, per_topic=3)
-
-    html_parts = [
-        "<table class='table table-sm'>",
-        "<thead><tr><th style='width:20%'>Topic</th><th style='width:30%'>Keywords</th><th>Example messages</th></tr></thead>",
-        "<tbody>",
+    table_md = _render_topic_table(rows)
+    output = [
+        "<details>",
+        "<summary>Show user topic examples</summary>",
+        "",
+        table_md,
+        "",
+        "</details>",
     ]
-    for row in rows:
-        examples_html = "<ul>" + "".join(f"<li>{example}</li>" for example in row['examples']) + "</ul>"
-        topic_display = f"{row['topic_id']}: {row['intent_label']}"
-        html_parts.append(
-            f"<tr><td><b>{topic_display}</b></td><td><i>{row['keywords']}</i></td><td>{examples_html}</td></tr>"
-        )
-    html_parts.append("</tbody></table>")
-    display(HTML("\n".join(html_parts)))
+    print("\n".join(output))
 else:
     print("No user topic examples available.")
 ```
@@ -753,29 +726,25 @@ else:
 ### AI topic examples
 
 ```{python}
-from IPython.display import HTML, display
+#| output: asis
 
 if not topic_keywords.empty and not message_topics_assistant.empty:
     top_ai = (
         topic_keywords[topic_keywords['message_role'] == 'assistant']
         .sort_values('message_count', ascending=False)
-        .head(5)
+        .head(15)
     )
     rows = sample_topic_examples(message_topics_assistant, top_ai, per_topic=3)
-
-    html_parts = [
-        "<table class='table table-sm'>",
-        "<thead><tr><th style='width:20%'>Topic</th><th style='width:30%'>Keywords</th><th>Example messages</th></tr></thead>",
-        "<tbody>",
+    table_md = _render_topic_table(rows)
+    output = [
+        "<details>",
+        "<summary>Show AI topic examples</summary>",
+        "",
+        table_md,
+        "",
+        "</details>",
     ]
-    for row in rows:
-        examples_html = "<ul>" + "".join(f"<li>{example}</li>" for example in row['examples']) + "</ul>"
-        topic_display = f"{row['topic_id']}: {row['intent_label']}"
-        html_parts.append(
-            f"<tr><td><b>{topic_display}</b></td><td><i>{row['keywords']}</i></td><td>{examples_html}</td></tr>"
-        )
-    html_parts.append("</tbody></table>")
-    display(HTML("\n".join(html_parts)))
+    print("\n".join(output))
 else:
     print("No AI topic examples available.")
 ```
@@ -795,76 +764,66 @@ By analyzing these patterns over time, educators can identify which topics requi
 
 # Summary and Recommendations
 
-## Key Insights
+This analysis provides comprehensive insights into how students interact with the AI assistant on the Udhyam learning platform. By examining message patterns, sentiment, topics, and engagement dynamics, we have identified key trends that can guide platform improvements and optimize the learning experience.
 
-Based on the analysis of student-AI interactions, several important patterns emerge:
+## Key Insights
 
 ```{python}
 #| output: asis
+# Generate full sentence insights
 insights = []
 
 # Message activity insights
 if not timeline_daily.empty and not timeline_hourly.empty:
     peak_hour = timeline_hourly.loc[timeline_hourly['messages'].idxmax(), 'hour']
     total_messages = timeline_daily['messages'].sum()
-    insights.append(f"**Engagement Patterns**: Students sent {total_messages:,} messages, with peak activity occurring around hour {peak_hour}.")
+    insights.append(f"Student engagement is substantial, with a total of {total_messages:,} messages exchanged over the analysis period. Peak activity occurs around hour {peak_hour}, indicating a concentrated window of student engagement that should be considered when scheduling support and platform maintenance.")
 
 # CAL state insights
 if not cal_state_counts.empty:
     top_state = cal_state_counts.iloc[0]
-    insights.append(f"**Learning States**: The '{top_state['cal_state']}' state generated the most engagement with {top_state['message_count']:,} messages.")
+    insights.append(f"The '{top_state['cal_state']}' learning state is the primary focus of student interactions, generating {top_state['message_count']:,} messages. This high-volume state represents a critical area where students spend most of their time and where the AI assistant provides the most support. Optimizing content and AI responses in this state could yield significant improvements in student outcomes.")
 
 # Sentiment insights
 if not sentiment_counts.empty:
     user_sentiments = sentiment_counts[sentiment_counts['role'] == 'user']
     if not user_sentiments.empty:
         dominant_sentiment = user_sentiments.loc[user_sentiments['messages'].idxmax(), 'sentiment_label']
-        insights.append(f"**User Sentiment**: Students predominantly express {dominant_sentiment} sentiment in their interactions.")
+        ai_sentiments = sentiment_counts[sentiment_counts['role'] == 'assistant']
+        dominant_ai_sentiment = ai_sentiments.loc[ai_sentiments['messages'].idxmax(), 'sentiment_label'] if not ai_sentiments.empty else "unknown"
+        insights.append(f"Student sentiment is predominantly {dominant_sentiment.lower()}, which reflects their emotional state when interacting with the platform. The AI assistant maintains a {dominant_ai_sentiment.lower()} tone in its responses, demonstrating consistent emotional support. Maintaining or improving this positive interaction dynamic is essential for student satisfaction and engagement.")
 
 # Topic insights
 if not topic_keywords.empty:
     user_topics = topic_keywords[topic_keywords['message_role'] == 'user'].sort_values('message_count', ascending=False)
     if not user_topics.empty:
         top_topic = user_topics.iloc[0]
-        insights.append(f"**Common Topics**: The most frequent discussion topic among students is '{top_topic['keywords']}' with {top_topic['message_count']} messages.")
+        insights.append(f"Student discussions are concentrated around specific topics, with '{top_topic['keywords']}' being the most frequently discussed area with {top_topic['message_count']} messages. This concentration indicates clear student interests and pain points that represent opportunities for targeted content development and AI response optimization.")
 
 for insight in insights:
-    print(f"{insight}\n\n")
+    if insight:
+        print(f"{insight}\n\n")
 ```
 
-## Recommendations
+## Recommendations and Action Items
 
-Based on these findings, we recommend the following actions:
+Based on these findings and the patterns revealed throughout this analysis, we recommend the following strategic actions:
 
-1. **Optimize Engagement Timing**
-   - Schedule proactive AI interventions during peak usage hours
-   - Consider sending reminders or notifications when students are most active
+**Optimize Peak Engagement Times.** The analysis reveals concentrated peak activity during specific hours of the day. The platform should schedule proactive AI interventions, content updates, and system maintenance during off-peak hours to avoid disrupting student engagement. Consider implementing notification strategies that leverage these peak activity windows to encourage timely student interaction with the AI.
 
-2. **Enhance High-Volume CAL States**
-   - Focus development efforts on improving the most-used learning states
-   - Add more content and support for popular interaction contexts
+**Prioritize High-Impact Learning States.** Since the top learning states account for the majority of student interactions, development resources should be allocated to enhance content, AI responses, and user experience in these high-volume contexts. This focused investment will directly address where students spend most of their time and where improvements will have the greatest impact.
 
-3. **Address Sentiment Patterns**
-   - Monitor negative sentiment trends and identify root causes
-   - Refine AI responses to maintain positive, supportive interactions
+**Maintain and Strengthen Positive Sentiment.** The predominantly positive sentiment observed in student interactions indicates a healthy engagement environment. The platform should continue monitoring sentiment trends to identify any deterioration and implement measures to sustain the current positive atmosphere. When negative sentiment is detected, root cause analysis should be conducted to address specific pain points.
 
-4. **Expand Topic Coverage**
-   - Create targeted content for frequently discussed topics
-   - Develop specialized responses for common student questions
+**Develop Topic-Specific Content and Responses.** The concentrated distribution of student discussions around specific topics provides clear guidance for content development. Create specialized learning modules, tutorial content, and AI response templates for frequently discussed topics to provide more targeted and effective support. Use topic keywords to identify areas where additional explanatory content or clarification may be beneficial.
 
-5. **Data Quality and Monitoring**
-   - Refresh the dataset regularly by re-running the analysis pipeline
-   - Monitor sentiment shifts over time as new cohorts are onboarded
-   - Conduct qualitative review of high-volume topics to improve content
+**Establish Continuous Monitoring Practices.** Regular re-analysis of student interaction data should become part of the platform's operational routine. Set up monthly or quarterly analysis runs using this pipeline to track changes in engagement patterns, sentiment trends, and topic distributions. This continuous monitoring will enable early detection of issues and opportunities for optimization.
+
+**Conduct Qualitative Validation.** While quantitative analysis provides valuable insights, conducting follow-up user interviews or focus groups with students can provide deeper context about why certain topics are frequently discussed and what aspects of the learning experience are most valuable. This qualitative feedback should inform iterative improvements to the platform and AI responses.
 
 ## Next Steps
 
-To continue improving the analysis:
-
-- **Update Data**: Re-run the Snakemake pipeline when new data becomes available
-- **Deeper Analysis**: Conduct user interviews to validate automated findings
-- **A/B Testing**: Experiment with different AI response strategies based on insights
-- **Longitudinal Tracking**: Monitor how patterns change over time
+To implement these recommendations and continue improving the student-AI interaction experience, the following steps should be taken in priority order. First, establish a regular analysis schedule to generate updated reports as new data becomes available, ensuring that decision-making is always based on current patterns. Second, conduct a deep dive analysis of the highest-volume learning states to identify specific improvements that can be quickly implemented. Third, work with content developers to create specialized resources for the most frequently discussed topics. Finally, begin qualitative research through user interviews to validate the quantitative findings and gather contextual insights that numbers alone cannot provide.
 
 ---
 
