@@ -591,6 +591,18 @@ def main() -> None:
         if len(failed_retries) > 10:
             print(f"  ...and {len(failed_retries) - 10} more.")
 
+    dedupe_subset = [col for col in ["datetime", "whatsapp_id", "user_msg"] if col in messages.columns]
+    if dedupe_subset:
+        before_dedupe = len(messages)
+        messages = messages.drop_duplicates(subset=dedupe_subset, keep="first")
+        after_dedupe = len(messages)
+        removed = before_dedupe - after_dedupe
+        if removed > 0:
+            print(
+                f"\nRemoved {removed} duplicate translated row(s) based on {dedupe_subset}; "
+                "keeping the earliest occurrence."
+            )
+
     messages.to_csv(args.output, index=False)
     print(f"\nTranslated data saved to: {args.output}")
 
