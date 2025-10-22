@@ -398,7 +398,7 @@ else:
     print("No state data available")
 ```
 
-The table above shows which states generate the most engagement, indicating where students spend the most time and where the AI is most frequently engaged.
+The table above shows message distribution across Indian states (Haryana, Punjab, MP, etc.), indicating which regions generate the most engagement and where students spend the most time interacting with the AI assistant.
 
 ## 1.4 Message Statistics
 
@@ -782,7 +782,7 @@ if not timeline_daily.empty and not timeline_hourly.empty:
 # CAL state insights
 if not cal_state_counts.empty:
     top_state = cal_state_counts.iloc[0]
-    insights.append(f"The '{top_state['cal_state']}' learning state is the primary focus of student interactions, generating {top_state['message_count']:,} messages. This high-volume state represents a critical area where students spend most of their time and where the AI assistant provides the most support. Optimizing content and AI responses in this state could yield significant improvements in student outcomes.")
+    insights.append(f"The '{top_state['cal_state']}' region is the primary focus of student interactions, generating {top_state['message_count']:,} messages. This high-volume region represents a critical area where students spend most of their time and where the AI assistant provides the most support. Optimizing content and AI responses for this region could yield significant improvements in student outcomes.")
 
 # Sentiment insights
 if not sentiment_counts.empty:
@@ -811,7 +811,7 @@ Based on these findings and the patterns revealed throughout this analysis, we r
 
 **Optimize Peak Engagement Times.** The analysis reveals concentrated peak activity during specific hours of the day. The platform should schedule proactive AI interventions, content updates, and system maintenance during off-peak hours to avoid disrupting student engagement. Consider implementing notification strategies that leverage these peak activity windows to encourage timely student interaction with the AI.
 
-**Prioritize High-Impact Learning States.** Since the top learning states account for the majority of student interactions, development resources should be allocated to enhance content, AI responses, and user experience in these high-volume contexts. This focused investment will directly address where students spend most of their time and where improvements will have the greatest impact.
+**Prioritize High-Impact Regions.** Since the top regions account for the majority of student interactions, development resources should be allocated to enhance content, AI responses, and user experience tailored to these high-volume geographic contexts. This focused investment will directly address where students spend most of their time and where improvements will have the greatest impact.
 
 **Maintain and Strengthen Positive Sentiment.** The predominantly positive sentiment observed in student interactions indicates a healthy engagement environment. The platform should continue monitoring sentiment trends to identify any deterioration and implement measures to sustain the current positive atmosphere. When negative sentiment is detected, root cause analysis should be conducted to address specific pain points.
 
@@ -823,7 +823,7 @@ Based on these findings and the patterns revealed throughout this analysis, we r
 
 ## Next Steps
 
-To implement these recommendations and continue improving the student-AI interaction experience, the following steps should be taken in priority order. First, establish a regular analysis schedule to generate updated reports as new data becomes available, ensuring that decision-making is always based on current patterns. Second, conduct a deep dive analysis of the highest-volume learning states to identify specific improvements that can be quickly implemented. Third, work with content developers to create specialized resources for the most frequently discussed topics. Finally, begin qualitative research through user interviews to validate the quantitative findings and gather contextual insights that numbers alone cannot provide.
+To implement these recommendations and continue improving the student-AI interaction experience, the following steps should be taken in priority order. First, establish a regular analysis schedule to generate updated reports as new data becomes available, ensuring that decision-making is always based on current patterns. Second, conduct a deep dive analysis of the highest-volume regions to identify region-specific improvements that can be quickly implemented. Third, work with content developers to create specialized resources for the most frequently discussed topics. Finally, begin qualitative research through user interviews to validate the quantitative findings and gather contextual insights that numbers alone cannot provide.
 
 ---
 
