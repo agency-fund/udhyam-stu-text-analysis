@@ -22,6 +22,8 @@ ALL_OUTPUTS = [
     "data/analysis/topic_info_assistant.csv",
     "data/analysis/message_topics_user.csv",
     "data/analysis/message_topics_assistant.csv",
+    "data/analysis/agency_user.parquet",
+    "data/analysis/agency_assistant.parquet",
     "docs/index.html",
     "docs/pipeline_graphs/pipeline_dag.png",
 ]
@@ -109,14 +111,32 @@ rule topic_modeling:
             "--input {input.translated:q}{params.openai_args}"
         )
 
+
+rule agency_scoring:
+    input:
+        translated="data/cleaned/messages_translated.csv"
+    output:
+        user="data/analysis/agency_user.parquet",
+        assistant="data/analysis/agency_assistant.parquet"
+    shell:
+        (
+            "python scripts/06_agency_scoring.py "
+            "--input {input.translated:q} "
+            "--output-user {output.user:q} "
+            "--output-assistant {output.assistant:q}"
+        )
+
+
 rule render_report:
     input:
-        report="docs/udhyam_stu_text_analysis_report.qmd"
+        report="docs/udhyam_stu_text_analysis_report.qmd",
+        agency_user="data/analysis/agency_user.parquet",
+        agency_assistant="data/analysis/agency_assistant.parquet"
     output:
         html="docs/index.html"
     shell:
         (
-            "python scripts/06_render_report.py "
+            "python scripts/07_render_report.py "
             "--input {input.report:q} --output {output.html:q}"
         )
 

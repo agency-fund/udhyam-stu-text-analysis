@@ -56,6 +56,8 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 # Set professional theme
 sns.set_style("whitegrid")
@@ -157,6 +159,18 @@ assistant_msgs = messages[["datetime", "date", "hour", "whatsapp_id", "ai_msg_en
 
 message_topics_user = load_csv("data/analysis/message_topics_user.csv")
 message_topics_assistant = load_csv("data/analysis/message_topics_assistant.csv")
+
+agency_user = pd.read_parquet(BASE / "data/analysis/agency_user.parquet")
+agency_assistant = pd.read_parquet(BASE / "data/analysis/agency_assistant.parquet")
+
+for frame, role in ((agency_user, "user"), (agency_assistant, "assistant")):
+    if "message_role" not in frame.columns:
+        frame["message_role"] = role
+
+AGENCY_POS_THRESHOLD = 0.3
+AGENCY_NEG_THRESHOLD = -0.3
+
+agency_messages = pd.concat([agency_user, agency_assistant], ignore_index=True, sort=False)
 
 timeline_daily = (
     user_msgs.groupby("date").size().reset_index(name="messages")
@@ -757,6 +771,120 @@ The relationship between user and AI topics reveals the quality of conversationa
 - **Proactive guidance**: Topics in AI messages that extend beyond immediate user questions suggest the assistant is providing broader context and anticipatory support
 - **Knowledge gaps**: Frequent topics about basic concepts may indicate areas where students need more foundational instruction or clearer explanations
 - **Engagement patterns**: The diversity and specificity of topics reflect how deeply students are engaging with course material
+
+## Agency Signals in Conversations
+
+While topic clustering focuses on *what* is being discussed, agency analysis captures *how* participants frame their contributions. We score every translated message with the BERTAgent model, which was trained to output positive values for proactive, agentic statements and negative values for passive or low-agency language. Unlike topic modeling, no short-message filtering is applied—BERTAgent handles brief acknowledgements by returning scores near zero.
+
+```{python}
+#| label: tbl-agency-summary
+if not agency_messages.empty:
+    def pct(series: pd.Series) -> float:
+        valid = series.dropna()
+        if valid.empty:
+            return np.nan
+        return float(valid.astype(int).mean() * 100)
+
+    summary = (
+        agency_messages.groupby("message_role")
+        .agg(
+            total_messages=("message_id", "count"),
+            scored_messages=("agency_score", lambda x: int(x.notna().sum())),
+            mean_agency=("agency_score", lambda x: x.mean()),
+            median_agency=("agency_score", lambda x: x.median()),
+            pct_high=("is_high", pct),
+            pct_low=("is_low", pct),
+        )
+        .reset_index()
+        .replace({"message_role": {"user": "User", "assistant": "Assistant"}})
+    )
+    summary["mean_agency"] = summary["mean_agency"].round(3)
+    summary["median_agency"] = summary["median_agency"].round(3)
+    summary["pct_high"] = summary["pct_high"].round(1)
+    summary["pct_low"] = summary["pct_low"].round(1)
+    display(summary.rename(columns={
+        "message_role": "Role",
+        "total_messages": "Messages",
+        "scored_messages": "Non-empty",
+        "mean_agency": "Mean agency",
+        "median_agency": "Median agency",
+        "pct_high": f"% ≥ {AGENCY_POS_THRESHOLD}",
+        "pct_low": f"% ≤ {AGENCY_NEG_THRESHOLD}",
+    }))
+else:
+    print("No agency scores available. Run scripts/06_agency_scoring.py.")
+```
+
+```{python}
+#| label: fig-agency-distribution
+fig, ax = plt.subplots(figsize=(8, 5))
+score_df = agency_messages.dropna(subset=["agency_score"])
+if not score_df.empty:
+    palette = {"user": COLOR_USER, "assistant": COLOR_AI}
+    sns.histplot(
+        data=score_df,
+        x="agency_score",
+        hue="message_role",
+        bins=40,
+        element="step",
+        stat="count",
+        palette=palette,
+        ax=ax,
+    )
+    ax.axvline(AGENCY_POS_THRESHOLD, color=COLOR_POSITIVE, linestyle="--", linewidth=1.5, label="High-agency threshold")
+    ax.axvline(AGENCY_NEG_THRESHOLD, color=COLOR_NEGATIVE, linestyle="--", linewidth=1.5, label="Low-agency threshold")
+    ax.set_xlabel("Agency score", fontweight="bold")
+    ax.set_ylabel("Messages", fontweight="bold")
+    legend_handles = [
+        Patch(facecolor="none", edgecolor=COLOR_USER, linewidth=2, label="User"),
+        Patch(facecolor="none", edgecolor=COLOR_AI, linewidth=2, label="Assistant"),
+        Line2D([], [], color=COLOR_POSITIVE, linestyle="--", linewidth=1.5, label=f"High threshold ({AGENCY_POS_THRESHOLD})"),
+        Line2D([], [], color=COLOR_NEGATIVE, linestyle="--", linewidth=1.5, label=f"Low threshold ({AGENCY_NEG_THRESHOLD})"),
+    ]
+    ax.legend(handles=legend_handles, frameon=False)
+else:
+    ax.text(0.5, 0.5, "No agency scores available", ha="center", va="center", fontsize=12)
+    ax.set_xticks([])
+    ax.set_yticks([])
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: tbl-agency-examples
+if not agency_messages.empty:
+    def role_examples(role: str, label: str) -> None:
+        subset = agency_messages[agency_messages["message_role"] == role].copy()
+        subset = subset.dropna(subset=["agency_score"])
+        if subset.empty:
+            print(f"No scored {label.lower()} messages available.")
+            return
+
+        text_column = "text_translated" if "text_translated" in subset.columns else "text_original"
+
+        top_pos = (
+            subset.nlargest(5, "agency_score")
+            .loc[:, ["message_id", "agency_score", text_column]]
+            .rename(columns={text_column: "message"})
+        )
+        top_neg = (
+            subset.nsmallest(5, "agency_score")
+            .loc[:, ["message_id", "agency_score", text_column]]
+            .rename(columns={text_column: "message"})
+        )
+
+        if not top_pos.empty:
+            print(f"Top high-agency {label} messages")
+            display(top_pos.reset_index(drop=True))
+        if not top_neg.empty:
+            print(f"Lowest agency {label} messages")
+            display(top_neg.reset_index(drop=True))
+
+    role_examples("user", "User")
+    role_examples("assistant", "Assistant")
+else:
+    print("No agency scores available for qualitative review.")
+```
 
 By analyzing these patterns over time, educators can identify which topics require enhanced content, where students struggle most, and how to optimize the AI's pedagogical approach.
 
