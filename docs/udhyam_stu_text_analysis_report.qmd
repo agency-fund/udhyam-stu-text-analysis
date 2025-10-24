@@ -299,7 +299,7 @@ def sample_topic_examples(assign_df: pd.DataFrame, top_topics: pd.DataFrame, per
 
 # Overview
 
-This report analyzes student-AI interactions from the Udhyam learning platform. The analysis examines message patterns, sentiment, topics, and conversation dynamics to understand how students engage with the AI assistant.
+This report analyzes student-AI interactions from the Udhyam's AI Mentor Buddy. The analysis examines message patterns, sentiment, topics, and level of agency demonstrated through conversations to understand how students engage with the AI assistant.
 
 ```{python}
 #| output: asis
@@ -308,42 +308,17 @@ print(f"{overview_sentence}")
 
 ## Key Findings
 
-```{python}
-#| output: asis
-# Create full sentence summaries for key findings
-findings = []
-
-# Sentiment patterns
-user_sentiment_text = sentiment_user_sentence.replace("User messages most often express: ", "").lower() if sentiment_user_sentence else ""
-ai_sentiment_text = sentiment_ai_sentence.replace("Assistant messages most often express: ", "").lower() if sentiment_ai_sentence else ""
-
-if user_sentiment_text:
-    findings.append(f"User messages predominantly express {user_sentiment_text}, indicating their overall emotional tone during interactions with the AI assistant.")
-
-if ai_sentiment_text:
-    findings.append(f"The AI assistant maintains a tone that is primarily {ai_sentiment_text}, reflecting consistent pedagogical support in its responses.")
-
-# Topic findings
-if user_topic_sentence:
-    findings.append(f"Students engage most frequently with topics related to: {user_topic_sentence.split(chr(10))[0].replace('Topic ', '').lower()}. These represent the primary areas where students seek AI assistance and guidance.")
-
-if assistant_topic_sentence:
-    findings.append(f"The AI assistant's responses are concentrated in areas including {assistant_topic_sentence.split(chr(10))[0].replace('Topic ', '').lower()}, showing focused coverage of student needs.")
-
-for finding in findings:
-    if finding:
-        print(f"{finding}\n\n")
-```
+...
 
 ---
 
 # Part 1: Message Activity {.tabset}
 
-## 1.1 Daily Volume
+## 1.1 Daily Message Volume
 
 ```{python}
 #| label: fig-daily-volume
-#| fig-cap: "Daily user message volume over time"
+#| fig-cap: "Daily User Message Volume Over Time"
 fig, ax = plt.subplots(figsize=(8, 4.5))
 if not timeline_daily.empty:
     sns.lineplot(data=timeline_daily, x="date", y="messages", marker="o",
@@ -369,7 +344,7 @@ Daily message volume shows the temporal distribution of student engagement with 
 
 ```{python}
 #| label: fig-hourly-distribution
-#| fig-cap: "Hourly distribution of user messages throughout the day"
+#| fig-cap: "Hourly Distribution of User Messages Throughout the Day"
 fig, ax = plt.subplots(figsize=(8, 4.5))
 if not timeline_hourly.empty:
     sns.barplot(data=timeline_hourly, x="hour", y="messages",
@@ -398,7 +373,7 @@ This distribution reveals when students are most active in using the platform th
 
 ```{python}
 #| label: tbl-cal-state
-#| tbl-cap: "State distribution with message counts and percentages"
+#| tbl-cap: "Table 1.3: Message Distribution Across States with Counts and Percentages"
 from IPython.display import display, Markdown
 
 cal_table = cal_state_table()
@@ -418,7 +393,7 @@ The table above shows message distribution across Indian states (Haryana, Punjab
 
 ```{python}
 #| label: tbl-message-stats
-#| tbl-cap: "Summary statistics for message activity"
+#| tbl-cap: "Table 1.4: Summary Statistics for Message Activity"
 from IPython.display import display, Markdown
 
 if not message_stats.empty:
@@ -429,7 +404,7 @@ else:
 
 ---
 
-# Part 3: Sentiment Analysis {.tabset}
+# Part 2: Sentiment Analysis {.tabset}
 
 Sentiment analysis examines the emotional tone of messages exchanged between students and the AI assistant. Understanding sentiment helps assess user satisfaction and the quality of AI responses.
 
@@ -437,28 +412,86 @@ Sentiment analysis examines the emotional tone of messages exchanged between stu
 
 **What is being measured?**
 
-Messages are analyzed for emotional tone and classified into sentiment categories (typically Positive, Neutral, and Negative). This helps us understand:
+Each message exchanged between students and the AI assistant is analyzed for emotional tone and classified into sentiment categories: Positive, Neutral, and Negative. This analysis helps us understand how students feel when interacting with the AI, whether the AI maintains an appropriate and supportive tone, and the overall emotional dynamic of conversations.
 
-- **User sentiment**: How students feel when interacting with the AI
-- **AI sentiment**: Whether the AI maintains an appropriate, supportive tone
-- **Interaction quality**: The overall emotional dynamic of conversations
+<details>
+<summary>**Methodology (click to expand)**</summary>
 
-**Technical methodology:**
+The sentiment analysis pipeline employs transformer-based natural language processing models to assess the emotional content of conversational messages. The process unfolds in the following sequence:
 
-The sentiment analysis is performed using transformer-based natural language processing models. Each message is processed through the following pipeline:
+1. **Text preprocessing**: Individual messages undergo cleaning and normalization procedures that preserve emotionally significant elements such as punctuation and capitalization, which often carry meaning in informal communication.
 
-1. **Text preprocessing**: Messages are cleaned and normalized, preserving emotionally significant elements like punctuation and capitalization
-2. **Model inference**: A pre-trained sentiment classification model (typically BERT-based or similar transformer architecture) analyzes the text and assigns probability scores to each sentiment category
-3. **Classification**: Messages are labeled as Positive, Neutral, or Negative based on the highest probability score
-4. **Aggregation**: Results are grouped by message role (user vs. assistant) to compare sentiment patterns
+2. **Model inference**: Each preprocessed message is processed through a pre-trained sentiment classification model, typically based on BERT or similar transformer architectures. The model analyzes the text and generates probability scores for each sentiment category, capturing the nuanced language patterns in educational discourse.
 
-The model has been fine-tuned on conversational text data to better capture the nuances of educational interactions, including informal language, code snippets, and domain-specific terminology common in learning platforms.
+3. **Classification**: Messages are assigned to sentiment categories (Positive, Neutral, or Negative) based on the highest probability score produced by the model.
 
-## 3.1 Sentiment Comparison
+4. **Aggregation and comparison**: Classification results are aggregated and grouped by message role (user versus assistant) to enable comparative analysis of sentiment patterns between students and the AI.
+
+The underlying sentiment model has been fine-tuned on conversational text data to better capture the linguistic patterns specific to educational interactions, including informal language conventions, technical code snippets, and domain-specific terminology commonly found in learning platforms. This targeted training ensures that sentiment classifications accurately reflect the context and intent of messages within the Udhyam platform.
+
+</details>
+
+<details>
+<summary>**Technical Details (click to expand)**</summary>
+
+**Specific Models Used:**
+
+This analysis uses the `nlptown/bert-base-multilingual-uncased-sentiment` model from Hugging Face, a BERT-based sentiment classifier with the following characteristics:
+
+- **Architecture**: Base-sized BERT (12 layers, 768 hidden dimensions, ~110 million parameters)
+- **Multilingual capability**: Trained to support English, Spanish, Hindi, Punjabi, and Hinglish, making it well-suited for analyzing messages that may contain code-switched or mixed-language content common in educational settings
+- **Output format**: Produces 5-point sentiment ratings ("1 star", "2 stars", "3 stars", "4 stars", "5 stars") with confidence scores (0.0-1.0)
+- **Token limit**: Messages are truncated to a maximum of 512 tokens to fit the model's input constraints
+
+**Engineering and Processing:**
+
+The sentiment analysis pipeline (`scripts/04_sentiment_analysis.py`) implements the following workflow:
+
+1. **Batch processing**: Messages are processed in batches (default: 16 messages per batch) for computational efficiency. This approach balances memory usage with throughput, allowing the pipeline to scale to thousands of messages while maintaining reasonable processing time.
+
+2. **Separate role-based analysis**: User and assistant messages are analyzed independently, producing separate outputs:
+   - User sentiment stored in `sentiment_user.csv`
+   - Assistant sentiment stored in `sentiment_ai.csv`
+   - This separation enables direct comparison of emotional tone between participants
+
+3. **Output schema**: For each message, the pipeline captures:
+   - `sentiment_label`: The raw model output (e.g., "4 stars")
+   - `sentiment_score`: The model's confidence in this classification (0.0-1.0)
+   - `sentiment_stars`: A normalized numeric rating (1-5 scale) extracted from the label
+
+4. **Aggregation and statistics**: Beyond per-message classification, the pipeline computes aggregate statistics:
+   - Distribution of sentiments across each role
+   - Mean and median sentiment scores
+   - Sentiment label frequency counts
+   - These summaries are stored in `sentiment_overview.csv` for quick reference
+
+**Model Configuration:**
+
+The model is used with default Hugging Face `pipeline` parameters:
+- `truncation=True`: Longer messages are automatically truncated to 512 tokens
+- No custom fine-tuning is applied; the model uses its pre-trained weights as distributed by Hugging Face
+- The multilingual nature of the base model means it gracefully handles English, mixed-language, and code-containing messages without requiring language-specific preprocessing
+
+**Data Flow in Pipeline:**
+
+Sentiment analysis is the fourth step in the complete analysis pipeline:
+1. Load and clean data
+2. Translate messages to English (if needed)
+3. Generate summary statistics
+4. **→ Sentiment analysis** (this step)
+5. Topic modeling
+6. Agency scoring
+7. Generate HTML report
+
+Output files are stored in `data/analysis/` and are consumed by subsequent pipeline steps and the final report visualization.
+
+</details>
+
+## 2.1 Sentiment Comparison
 
 ```{python}
 #| label: fig-sentiment-comparison
-#| fig-cap: "Sentiment distribution comparison between user and AI messages"
+#| fig-cap: "Sentiment Distribution Comparison Between User and AI Messages"
 
 # Create sentiment_counts for visualization
 sentiment_long = pd.concat([
@@ -520,11 +553,11 @@ plt.show()
 
 This comparison reveals whether users and the AI assistant maintain different emotional tones during interactions.
 
-## 3.2 Overall Sentiment Summary
+## 2.2 Overall Sentiment Summary
 
 ```{python}
 #| label: tbl-sentiment-overview
-#| tbl-cap: "Overall sentiment statistics"
+#| tbl-cap: "Table 3.2: Overall Sentiment Statistics"
 from IPython.display import display, Markdown
 
 if not sentiment_overview.empty:
@@ -537,36 +570,36 @@ else:
 
 # Part 3: Topic Modeling {.tabset}
 
-Topic modeling identifies the main themes and subjects discussed in conversations. This analysis reveals what students talk about most frequently and how the AI responds. 
+Topic modeling is a natural language processing technique that identifies the main themes and subjects discussed in conversations. This analysis reveals what students talk about most frequently and how the AI responds, providing insights into student concerns and the AI's pedagogical coverage.
 
 ## Understanding Topic Modeling
 
 **What is topic modeling?**
 
-Topic modeling uses natural language processing to automatically discover themes in text data. Each topic is represented by:
+Topic modeling is an unsupervised machine learning approach that automatically discovers latent themes and patterns in textual data without requiring pre-labeled training examples. Each identified topic is represented by multiple dimensions including the most characteristic words (keywords), the frequency of topic occurrence (message count), and the message source (whether the topic appears in user or AI messages). This analytical approach enables us to identify common student questions, recognize recurring concerns, and understand the AI's response patterns across different subject areas.
 
-- **Keywords**: The most characteristic words for that topic
-- **Message count**: How many messages belong to that topic
-- **Role**: Whether the topic appears in user or AI messages
+<details>
+<summary>**Methodology: How topics are discovered (click to expand)**</summary>
 
-This helps identify common student questions, concerns, and the AI's response patterns.
+The topic modeling pipeline employs BERTopic, a modern topic modeling framework that combines transformer-based embeddings with sophisticated clustering and dimensionality reduction algorithms. The complete process unfolds through the following sequential steps:
 
-**Technical methodology:**
+1. **Text embedding**: Each message in the dataset is converted into a high-dimensional semantic vector representation using sentence transformers (SBERT - Sentence-BERT). These dense embeddings capture the contextual and semantic meaning of the text rather than relying solely on keyword frequency or bag-of-words representations, enabling the model to understand subtle meaning even in short conversational exchanges.
 
-The topic modeling is performed using BERTopic, a modern topic modeling technique that leverages transformer embeddings and clustering algorithms:
+2. **Dimensionality reduction**: The high-dimensional embedding space is projected into a lower-dimensional representation using UMAP (Uniform Manifold Approximation and Projection). This algorithm preserves the local and global semantic relationships between messages while reducing computational complexity, making the data more suitable for clustering algorithms while maintaining the meaningful structure of the embedding space.
 
-1. **Text embedding**: Each message is converted into a high-dimensional semantic vector using sentence transformers (SBERT). These embeddings capture the contextual meaning of the text, not just keyword frequency
-2. **Dimensionality reduction**: UMAP (Uniform Manifold Approximation and Projection) reduces the embedding dimensions while preserving semantic relationships, making clusters more identifiable
-3. **Clustering**: HDBSCAN (Hierarchical Density-Based Spatial Clustering) groups semantically similar messages together based on their embeddings. Unlike traditional methods like LDA, this approach doesn't require pre-specifying the number of topics
-4. **Topic representation**: For each cluster, c-TF-IDF (class-based Term Frequency-Inverse Document Frequency) extracts the most representative keywords that distinguish one topic from others
-5. **OpenAI refinement (optional)**: When enabled, raw keywords and sample messages from each topic are sent to OpenAI's GPT models (e.g., gpt-4o-mini) to generate human-readable topic labels. This produces more natural, interpretable descriptions compared to keyword lists alone
-6. **Role separation**: Topics are analyzed separately for user messages and AI messages to understand the conversation dynamics from both perspectives
+3. **Clustering**: Semantically similar messages are grouped together into coherent clusters using HDBSCAN (Hierarchical Density-Based Spatial Clustering of Applications with Noise). Unlike traditional methods such as Latent Dirichlet Allocation (LDA) that require researchers to pre-specify the number of topics, HDBSCAN automatically determines the optimal number of topics based on the density structure of the embedding space, resulting in more natural topic divisions.
 
-This approach provides more coherent and interpretable topics compared to traditional methods, especially for short conversational messages where context is crucial.
+4. **Keyword extraction**: For each identified cluster, c-TF-IDF (class-based Term Frequency-Inverse Document Frequency) is applied to extract the most representative and distinctive keywords. This algorithm identifies words that are statistically frequent within a particular topic while remaining relatively rare in other topics, ensuring that extracted keywords are genuinely representative of each topic's content.
+
+5. **Topic refinement (optional)**: When enabled, the raw keyword lists and sample messages from each topic can be processed through OpenAI's GPT models (such as gpt-4o-mini) to generate human-readable semantic topic labels. This optional refinement step transforms statistical keyword lists into natural language descriptions that capture the broader thematic essence of each cluster, making the results more interpretable to non-technical stakeholders.
+
+6. **Role-based separation**: The complete topic modeling workflow is executed separately for user messages and assistant messages, enabling contrastive analysis of conversation dynamics from both participant perspectives and revealing whether the AI's topic coverage aligns with or complements student interests.
+
+This modern approach yields more coherent and interpretable topics compared to traditional statistical methods, particularly when analyzing conversational messages where context, nuance, and semantic meaning are crucial for accurate interpretation.
 
 **How to interpret OpenAI-refined topics:**
 
-When OpenAI representation is enabled (using the `--use-openai-representation` flag), the topic labels you see are **not** raw statistical keywords. Instead, they are natural language interpretations generated by a large language model (GPT) based on:
+When OpenAI labeling is enabled, the topic labels you see are **not** raw statistical keywords. Instead, they are natural language interpretations generated by a large language model (GPT) based on:
 
 - The initial keyword list from c-TF-IDF
 - Sample messages from the topic cluster
@@ -576,17 +609,88 @@ When OpenAI representation is enabled (using the `--use-openai-representation` f
 
 - **More readable**: Topics appear as coherent phrases rather than disconnected keywords (e.g., "Business model validation strategies" instead of "business, model, validate, customer, market")
 - **Higher-level abstraction**: The LLM synthesizes the underlying theme rather than just listing common terms
-- **Consistency**: Using temperature=0.0 ensures deterministic, consistent labeling across runs
+- **Consistency**: Using a fixed temperature ensures deterministic, consistent labeling across runs
 - **Trade-offs**: While more interpretable, OpenAI labels may occasionally oversimplify or miss nuances present in the raw keywords. For critical analysis, review both the OpenAI label and the underlying keyword distribution
 
-**When OpenAI refinement is NOT used** (default behavior), you'll see raw keyword lists extracted via c-TF-IDF, which represent the most statistically distinctive terms for each topic. These are more granular but require more manual interpretation to understand the broader theme.
+**When OpenAI refinement is NOT used**, you'll see raw keyword lists extracted via c-TF-IDF, which represent the most statistically distinctive terms for each topic. These are more granular but require more manual interpretation to understand the broader theme.
+
+</details>
+
+<details>
+<summary>**Technical Details (click to expand)**</summary>
+
+**Embedding Model:**
+
+The pipeline uses `all-mpnet-base-v2`, a SentenceTransformer model optimized for semantic similarity matching across diverse text types. This multilingual model is well-suited for capturing the semantic relationships in educational discourse, including mixed-language content and technical terminology.
+
+**BERTopic Configuration:**
+
+The topic modeling uses BERTopic with the following component configuration:
+
+- **Minimum topic size**: 15 messages (topics must contain at least 15 messages to be retained)
+- **Calculate probabilities**: False (faster computation; topics are hard-assigned rather than probabilistic)
+- **Seeded guidance**: Enabled by default with predefined topic seeds (e.g., "Registration", "Deadlines", "Submission", "Business Ideas", "Translation Help", "Teacher Support") to improve topic coherence
+
+**UMAP Parameters (Dimensionality Reduction):**
+
+```
+n_neighbors: 30          # Balance between local and global structure preservation
+n_components: 5          # Reduced dimensionality for clustering
+min_dist: 0.1            # Tighter cluster spacing in reduced space
+metric: cosine           # Distance metric optimized for text embeddings
+random_state: 42         # Reproducibility
+```
+
+**HDBSCAN Parameters (Clustering):**
+
+```
+min_cluster_size: 15     # Same as min_topic_size for consistency
+min_samples: 5           # Noise point sensitivity
+metric: euclidean        # Distance in reduced space
+cluster_selection_method: eom  # Excess of Mass (robust for varied density clusters)
+cluster_selection_epsilon: 0.0 # No automatic cluster merging
+prediction_data: True    # Enable probabilistic assignment
+```
+
+**CountVectorizer Parameters (Keyword Extraction):**
+
+```
+ngram_range: (1, 2)      # Include both unigrams and bigrams
+min_df: 3                # Word must appear in at least 3 documents
+max_df: 0.65             # Word must appear in at most 65% of documents (removes too-common words)
+stop_words: Custom set   # Language-appropriate stop words
+```
+
+**OpenAI Topic Labeling:**
+
+- **Status**: Enabled by default
+- **Model**: `gpt-4o-mini` (configurable via environment variable)
+- **Temperature**: 0.05 (low randomness for deterministic labeling)
+- **Requires**: `OPENAI_API_KEY` environment variable
+
+OpenAI labeling takes the extracted keywords and sample messages from each topic cluster and generates concise, human-readable semantic labels that capture the thematic essence of the cluster.
+
+**Processing Workflow:**
+
+- User and assistant messages are analyzed separately, generating independent topic models for each role
+- Message filtering: Only messages with at least 4 tokens after cleaning are included
+- Topic similarity merging: Topics with cosine similarity ≥ 0.95 are automatically merged (up to 2 merges per role)
+- Output includes: topic metadata, per-message topic assignments, representative keywords, and example messages
+
+**Output Files Generated:**
+
+- `topic_keywords.csv` - Keywords and metadata for each topic (by role)
+- `message_topics_user.csv` / `message_topics_assistant.csv` - Per-message topic assignments
+- `topic_examples_user.csv` / `topic_examples_assistant.csv` - Sample messages representing each topic
+
+</details>
 
 ## 3.1 User Message Topics
 
 ::: {.figure-scroll}
 ```{python}
 #| label: fig-user-topics
-#| fig-cap: "Top 15 topics in user messages"
+#| fig-cap: "Top 15 Topics in User Messages"
 fig, ax = plt.subplots(figsize=(12, 10))
 if not topic_keywords.empty:
     # Get top 15 topics for user messages
@@ -636,7 +740,7 @@ The user topic visualization reveals what students are asking about and discussi
 ::: {.figure-scroll}
 ```{python}
 #| label: fig-ai-topics
-#| fig-cap: "Top 15 topics in AI messages"
+#| fig-cap: "Top 15 Topics in AI Messages"
 fig, ax = plt.subplots(figsize=(12, 10))
 if not topic_keywords.empty:
     # Get top 15 topics for AI messages
@@ -683,12 +787,13 @@ The AI topic visualization shows the main themes in the assistant's responses. T
 
 ## 3.3 Interpreting Topic Patterns
 
-To ground the topic labels, the tables below show real message excerpts with topic keywords highlighted. This makes interpretations like “Casual affirmations” tangible by displaying the language patterns that define each cluster.
+To ground the topic labels and provide concrete validation of the topic clusters, the tables below display real message excerpts with topic keywords highlighted. This qualitative approach makes abstract topic interpretations tangible by showing the actual language patterns and phrasing that define each cluster. The highlighted keywords demonstrate how BERTopic identifies thematic coherence within clusters of student and assistant messages.
 
-Notes:
+**Notes on topic example interpretation:**
 
-- Highlights are derived from each topic’s keyword list. Because messages are lemmatized during preprocessing, highlighted forms may include closely related surface variants.
-- Examples come directly from the translated messages (the English text), giving a clear view of the student or AI phrasing that BERTopic grouped together.
+- Keyword highlights are derived from each topic's extracted keyword list. Since messages undergo lemmatization during preprocessing to normalize word variations, the highlighted forms may include closely related grammatical variants (e.g., "run," "running," "runs" are all recognized as variants of the same root concept).
+- Example messages are drawn directly from the translated message corpus (the English text), providing an authentic view of how students and the AI actually phrase their contributions within each identified topic cluster.
+- This qualitative grounding is essential for validating that the statistical clustering results align with human interpretation of topic coherence and semantic similarity.
 
 ### User topic examples
 
@@ -763,21 +868,126 @@ else:
     print("No AI topic examples available.")
 ```
 
-**Topic Alignment and Pedagogical Insights:**
+---
 
-The relationship between user and AI topics reveals the quality of conversational alignment:
+# Part 4: Agency Scoring {.tabset}
 
-- **Responsive teaching**: When AI topics mirror user topics with added depth, it indicates the assistant is directly addressing student needs
-- **Proactive guidance**: Topics in AI messages that extend beyond immediate user questions suggest the assistant is providing broader context and anticipatory support
-- **Knowledge gaps**: Frequent topics about basic concepts may indicate areas where students need more foundational instruction or clearer explanations
-- **Engagement patterns**: The diversity and specificity of topics reflect how deeply students are engaging with course material
+Agency analysis examines how students and the AI frame their contributions during conversations. Unlike topic modeling which focuses on *what* is being discussed, agency analysis captures *how* participants express themselves—whether they adopt proactive, agentic language or more passive, low-agency communication patterns. This distinction reveals important aspects of student engagement and the AI's pedagogical approach.
 
-## Agency Signals in Conversations
+## Understanding Agency Scoring
 
-While topic clustering focuses on *what* is being discussed, agency analysis captures *how* participants frame their contributions. We score every translated message with the BERTAgent model, which was trained to output positive values for proactive, agentic statements and negative values for passive or low-agency language. Unlike topic modeling, no short-message filtering is applied—BERTAgent handles brief acknowledgements by returning scores near zero.
+**What is agency in conversations?**
+
+Agency refers to the degree to which participants express themselves as active agents taking initiative, making decisions, and driving action, as opposed to passive recipients of information or instruction. In the context of student-AI interactions, high agency messages typically include:
+
+- **Student agency**: Taking initiative in problem-solving, asking clarifying questions, proposing solutions, expressing intentions and goals
+- **AI agency**: Offering guidance that empowers student decision-making, encouraging exploration and experimentation, facilitating student ownership of learning
+
+Low-agency messages, by contrast, tend to involve passive reception, implicit requests, or statements of helplessness or dependence.
+
+<details>
+<summary>**Methodology: How agency is scored (click to expand)**</summary>
+
+Every message in the dataset is scored using the BERTAgent model, a machine learning classifier specifically trained to recognize and quantify agency signals in text:
+
+1. **Model training**: BERTAgent was developed by fine-tuning a transformer-based language model on a corpus of labeled conversational data where messages were annotated for agency levels. The model learned to recognize linguistic patterns, syntactic structures, and semantic cues that correlate with agentic versus passive communication.
+
+2. **Score generation**: For each message, BERTAgent produces a continuous numerical score reflecting the degree of agency expressed. Positive scores indicate proactive, agentic language while negative scores indicate passive or low-agency communication. Scores near zero reflect neutral acknowledgments or brief responses that carry minimal agency information.
+
+3. **Threshold-based categorization**: To enable summary statistics, scores are classified into three categories using established thresholds: high-agency messages (score ≥ 0.3), neutral-agency messages (score between -0.3 and 0.3), and low-agency messages (score ≤ -0.3).
+
+4. **Message handling**: Unlike topic modeling which filters short messages, BERTAgent is designed to handle messages of all lengths, including very brief acknowledgments. The model naturally returns near-zero scores for these brief exchanges, which accurately reflect their minimal agency content.
+
+5. **Role-based analysis**: Agency scores are analyzed separately for user and assistant messages to understand how each participant's communication patterns contribute to the overall conversation dynamics.
+
+This approach provides nuanced insights into the motivational and empowerment dynamics of student-AI interactions, complementing the content-focused analysis provided by sentiment and topic modeling.
+
+</details>
+
+<details>
+<summary>**Technical Details (click to expand)**</summary>
+
+**Agency Scoring Model:**
+
+The analysis uses `EnchantedStardust/bertagent-best`, a Hugging Face model specifically trained for agency detection in conversational text. Key characteristics:
+
+- **Model type**: AutoModelForSequenceClassification (transformer-based)
+- **Output**: Continuous numerical scores (not discrete classifications)
+- **Architecture**: Single-output regression model trained on agency-annotated conversational data
+- **Weight format**: Safetensors (for security and compatibility)
+- **Tokenization**: Case-insensitive, with standard padding and attention masking
+
+**Scoring Process:**
+
+1. **Input preprocessing**: Messages are normalized by reducing multiple whitespaces to single spaces. Text is truncated to a maximum of 256 whitespace-delimited tokens to fit model constraints.
+
+2. **Batch inference**: Messages are processed in batches (default: 32) for computational efficiency. The model generates raw logits which are transformed into continuous agency scores.
+
+3. **Score generation**:
+   - Positive scores (0 to +1): Agentic language, initiative, proactive decisions
+   - Negative scores (-1 to 0): Passive language, dependence, low agency
+   - Near-zero scores: Minimal agency information (neutral acknowledgments, brief responses)
+
+4. **Threshold classification**: Based on thresholds, each score is classified as:
+   - **High agency**: score ≥ 0.3
+   - **Low agency**: score ≤ -0.3
+   - **Neutral agency**: -0.3 < score < 0.3
+
+**Configuration Parameters:**
+
+- **Positive threshold**: 0.3 (configurable)
+- **Negative threshold**: -0.3 (configurable)
+- **Batch size**: 32 messages per batch (configurable)
+- **Max tokens**: 256 whitespace-delimited tokens (configurable)
+- **Device**: Automatic GPU detection with CUDA support; falls back to CPU if unavailable
+- **Random seed**: 42 (for reproducibility)
+
+**Computation:**
+
+- GPU acceleration with CUDA memory cache clearing after each batch to prevent memory leaks
+- Automatic fallback to CPU inference if CUDA is unavailable
+- Robust error handling for model loading (safetensors format prevents pickle vulnerabilities)
+
+**Output Schema:**
+
+Each message receives the following fields:
+
+```
+- message_id: Unique identifier per message
+- agency_score: Continuous score (-1 to +1)
+- is_high: Boolean indicating high agency (score ≥ 0.3)
+- is_low: Boolean indicating low agency (score ≤ -0.3)
+- message_role: "user" or "assistant"
+- (original text fields preserved)
+```
+
+**Role-Based Analysis:**
+
+- User and assistant messages are scored independently, generating separate output files
+- `data/analysis/agency_user.parquet` - User message agency scores
+- `data/analysis/agency_assistant.parquet` - Assistant message agency scores
+- Files also preserve original datetime and WhatsApp ID if present in input
+
+**Pipeline Integration:**
+
+Agency scoring is the sixth step in the complete analysis pipeline:
+1. Load and clean data
+2. Translate messages to English
+3. Generate summary statistics
+4. Sentiment analysis
+5. Topic modeling
+6. **→ Agency scoring** (this step)
+7. Generate HTML report
+
+The agency scores are aggregated into summary statistics and visualized in the report to show comparative agency patterns between students and the AI assistant.
+
+</details>
+
+## 4.1 Agency Scoring Summary
 
 ```{python}
 #| label: tbl-agency-summary
+#| tbl-cap: "Table 4.1: Agency Scoring Statistics by Message Role"
 if not agency_messages.empty:
     def pct(series: pd.Series) -> float:
         valid = series.dropna()
@@ -815,8 +1025,11 @@ else:
     print("No agency scores available. Run scripts/06_agency_scoring.py.")
 ```
 
+## 4.2 Agency Distribution
+
 ```{python}
 #| label: fig-agency-distribution
+#| fig-cap: "Distribution of Agency Scores by Message Role"
 fig, ax = plt.subplots(figsize=(8, 5))
 score_df = agency_messages.dropna(subset=["agency_score"])
 if not score_df.empty:
@@ -850,40 +1063,169 @@ plt.tight_layout()
 plt.show()
 ```
 
+## 4.3 Qualitative Examples
+
+The following tables show messages with the highest and lowest agency scores for each participant type, providing concrete illustrations of what high-agency, low-agency, and neutral-agency communication looks like in the context of student-AI interactions:
+
 ```{python}
-#| label: tbl-agency-examples
+#| label: tbl-agency-user-high
+#| tbl-cap: "Top High-Agency User Messages"
+#| output: asis
+from IPython.display import display, Markdown
+
 if not agency_messages.empty:
-    def role_examples(role: str, label: str) -> None:
-        subset = agency_messages[agency_messages["message_role"] == role].copy()
-        subset = subset.dropna(subset=["agency_score"])
-        if subset.empty:
-            print(f"No scored {label.lower()} messages available.")
-            return
+    subset = agency_messages[agency_messages["message_role"] == "user"].copy()
+    subset = subset.dropna(subset=["agency_score"])
+    text_column = "text_translated" if "text_translated" in subset.columns else "text_original"
 
-        text_column = "text_translated" if "text_translated" in subset.columns else "text_original"
+    top_pos = (
+        subset.nlargest(5, "agency_score")
+        .loc[:, ["message_id", "agency_score", text_column]]
+        .rename(columns={text_column: "message"})
+        .copy()
+    )
 
-        top_pos = (
-            subset.nlargest(5, "agency_score")
-            .loc[:, ["message_id", "agency_score", text_column]]
-            .rename(columns={text_column: "message"})
+    if not top_pos.empty:
+        # Escape special characters that break markdown tables
+        top_pos["message"] = top_pos["message"].apply(
+            lambda x: str(x).replace("|", "\\|").replace("\n", " ") if pd.notna(x) else ""
         )
-        top_neg = (
-            subset.nsmallest(5, "agency_score")
-            .loc[:, ["message_id", "agency_score", text_column]]
-            .rename(columns={text_column: "message"})
-        )
-
-        if not top_pos.empty:
-            print(f"Top high-agency {label} messages")
-            display(top_pos.reset_index(drop=True))
-        if not top_neg.empty:
-            print(f"Lowest agency {label} messages")
-            display(top_neg.reset_index(drop=True))
-
-    role_examples("user", "User")
-    role_examples("assistant", "Assistant")
+        display(Markdown(top_pos.reset_index(drop=True).to_markdown()))
 else:
-    print("No agency scores available for qualitative review.")
+    print("No agency scores available.")
+```
+
+```{python}
+#| label: tbl-agency-user-low
+#| tbl-cap: "Lowest Agency User Messages"
+#| output: asis
+
+if not agency_messages.empty:
+    subset = agency_messages[agency_messages["message_role"] == "user"].copy()
+    subset = subset.dropna(subset=["agency_score"])
+    text_column = "text_translated" if "text_translated" in subset.columns else "text_original"
+
+    top_neg = (
+        subset.nsmallest(5, "agency_score")
+        .loc[:, ["message_id", "agency_score", text_column]]
+        .rename(columns={text_column: "message"})
+        .copy()
+    )
+
+    if not top_neg.empty:
+        # Escape special characters that break markdown tables
+        top_neg["message"] = top_neg["message"].apply(
+            lambda x: str(x).replace("|", "\\|").replace("\n", " ") if pd.notna(x) else ""
+        )
+        display(Markdown(top_neg.reset_index(drop=True).to_markdown()))
+else:
+    print("No agency scores available.")
+```
+
+```{python}
+#| label: tbl-agency-user-neutral
+#| tbl-cap: "Neutral Agency User Messages"
+#| output: asis
+
+if not agency_messages.empty:
+    subset = agency_messages[agency_messages["message_role"] == "user"].copy()
+    subset = subset.dropna(subset=["agency_score"])
+    text_column = "text_translated" if "text_translated" in subset.columns else "text_original"
+
+    neutral_cutoff = 0.15
+    neutral_subset = subset[(subset["agency_score"].abs() <= neutral_cutoff)]
+    if len(neutral_subset) > 0:
+        neutral = neutral_subset.sample(min(5, len(neutral_subset)), random_state=42)
+        neutral = neutral.loc[:, ["message_id", "agency_score", text_column]].rename(columns={text_column: "message"}).copy()
+        # Escape special characters that break markdown tables
+        neutral["message"] = neutral["message"].apply(
+            lambda x: str(x).replace("|", "\\|").replace("\n", " ") if pd.notna(x) else ""
+        )
+        display(Markdown(neutral.reset_index(drop=True).to_markdown()))
+    else:
+        print("No neutral agency user messages found.")
+else:
+    print("No agency scores available.")
+```
+
+```{python}
+#| label: tbl-agency-assistant-high
+#| tbl-cap: "Top High-Agency Assistant Messages"
+#| output: asis
+
+if not agency_messages.empty:
+    subset = agency_messages[agency_messages["message_role"] == "assistant"].copy()
+    subset = subset.dropna(subset=["agency_score"])
+    text_column = "text_translated" if "text_translated" in subset.columns else "text_original"
+
+    top_pos = (
+        subset.nlargest(5, "agency_score")
+        .loc[:, ["message_id", "agency_score", text_column]]
+        .rename(columns={text_column: "message"})
+        .copy()
+    )
+
+    if not top_pos.empty:
+        # Escape special characters that break markdown tables
+        top_pos["message"] = top_pos["message"].apply(
+            lambda x: str(x).replace("|", "\\|").replace("\n", " ") if pd.notna(x) else ""
+        )
+        display(Markdown(top_pos.reset_index(drop=True).to_markdown()))
+else:
+    print("No agency scores available.")
+```
+
+```{python}
+#| label: tbl-agency-assistant-low
+#| tbl-cap: "Lowest Agency Assistant Messages"
+#| output: asis
+
+if not agency_messages.empty:
+    subset = agency_messages[agency_messages["message_role"] == "assistant"].copy()
+    subset = subset.dropna(subset=["agency_score"])
+    text_column = "text_translated" if "text_translated" in subset.columns else "text_original"
+
+    top_neg = (
+        subset.nsmallest(5, "agency_score")
+        .loc[:, ["message_id", "agency_score", text_column]]
+        .rename(columns={text_column: "message"})
+        .copy()
+    )
+
+    if not top_neg.empty:
+        # Escape special characters that break markdown tables
+        top_neg["message"] = top_neg["message"].apply(
+            lambda x: str(x).replace("|", "\\|").replace("\n", " ") if pd.notna(x) else ""
+        )
+        display(Markdown(top_neg.reset_index(drop=True).to_markdown()))
+else:
+    print("No agency scores available.")
+```
+
+```{python}
+#| label: tbl-agency-assistant-neutral
+#| tbl-cap: "Neutral Agency Assistant Messages"
+#| output: asis
+
+if not agency_messages.empty:
+    subset = agency_messages[agency_messages["message_role"] == "assistant"].copy()
+    subset = subset.dropna(subset=["agency_score"])
+    text_column = "text_translated" if "text_translated" in subset.columns else "text_original"
+
+    neutral_cutoff = 0.15
+    neutral_subset = subset[(subset["agency_score"].abs() <= neutral_cutoff)]
+    if len(neutral_subset) > 0:
+        neutral = neutral_subset.sample(min(5, len(neutral_subset)), random_state=42)
+        neutral = neutral.loc[:, ["message_id", "agency_score", text_column]].rename(columns={text_column: "message"}).copy()
+        # Escape special characters that break markdown tables
+        neutral["message"] = neutral["message"].apply(
+            lambda x: str(x).replace("|", "\\|").replace("\n", " ") if pd.notna(x) else ""
+        )
+        display(Markdown(neutral.reset_index(drop=True).to_markdown()))
+    else:
+        print("No neutral agency assistant messages found.")
+else:
+    print("No agency scores available.")
 ```
 
 By analyzing these patterns over time, educators can identify which topics require enhanced content, where students struggle most, and how to optimize the AI's pedagogical approach.
@@ -905,12 +1247,12 @@ insights = []
 if not timeline_daily.empty and not timeline_hourly.empty:
     peak_hour = timeline_hourly.loc[timeline_hourly['messages'].idxmax(), 'hour']
     total_messages = timeline_daily['messages'].sum()
-    insights.append(f"Student engagement is substantial, with a total of {total_messages:,} messages exchanged over the analysis period. Peak activity occurs around hour {peak_hour}, indicating a concentrated window of student engagement that should be considered when scheduling support and platform maintenance.")
+    insights.append(f"**Engagement Volume:** Student engagement is substantial, with a total of {total_messages:,} messages exchanged over the analysis period. Peak activity occurs around hour {peak_hour}, indicating a concentrated window of student engagement that should be considered when scheduling support and platform maintenance.")
 
 # CAL state insights
 if not cal_state_counts.empty:
     top_state = cal_state_counts.iloc[0]
-    insights.append(f"The '{top_state['cal_state']}' region is the primary focus of student interactions, generating {top_state['message_count']:,} messages. This high-volume region represents a critical area where students spend most of their time and where the AI assistant provides the most support. Optimizing content and AI responses for this region could yield significant improvements in student outcomes.")
+    insights.append(f"**Geographic Focus:** The '{top_state['cal_state']}' region is the primary focus of student interactions, generating {top_state['message_count']:,} messages. This high-volume region represents a critical area where students spend most of their time and where the AI assistant provides the most support. Optimizing content and AI responses for this region could yield significant improvements in student outcomes.")
 
 # Sentiment insights
 if not sentiment_counts.empty:
@@ -919,14 +1261,27 @@ if not sentiment_counts.empty:
         dominant_sentiment = user_sentiments.loc[user_sentiments['messages'].idxmax(), 'sentiment_label']
         ai_sentiments = sentiment_counts[sentiment_counts['role'] == 'assistant']
         dominant_ai_sentiment = ai_sentiments.loc[ai_sentiments['messages'].idxmax(), 'sentiment_label'] if not ai_sentiments.empty else "unknown"
-        insights.append(f"Student sentiment is predominantly {dominant_sentiment.lower()}, which reflects their emotional state when interacting with the platform. The AI assistant maintains a {dominant_ai_sentiment.lower()} tone in its responses, demonstrating consistent emotional support. Maintaining or improving this positive interaction dynamic is essential for student satisfaction and engagement.")
+        insights.append(f"**Emotional Tone:** Student sentiment is predominantly {dominant_sentiment.lower()}, reflecting their emotional state when interacting with the platform. The AI assistant maintains a {dominant_ai_sentiment.lower()} tone in its responses, demonstrating consistent emotional support. Maintaining or improving this positive interaction dynamic is essential for student satisfaction and engagement.")
 
 # Topic insights
 if not topic_keywords.empty:
     user_topics = topic_keywords[topic_keywords['message_role'] == 'user'].sort_values('message_count', ascending=False)
     if not user_topics.empty:
         top_topic = user_topics.iloc[0]
-        insights.append(f"Student discussions are concentrated around specific topics, with '{top_topic['keywords']}' being the most frequently discussed area with {top_topic['message_count']} messages. This concentration indicates clear student interests and pain points that represent opportunities for targeted content development and AI response optimization.")
+        insights.append(f"**Primary Discussion Areas:** Student discussions are concentrated around specific topics, with '{top_topic['keywords']}' being the most frequently discussed area with {top_topic['message_count']} messages. This concentration indicates clear student interests and pain points that represent opportunities for targeted content development and AI response optimization.")
+
+# Agency insights
+if not agency_messages.empty:
+    user_agency = agency_messages[agency_messages['message_role'] == 'user'].dropna(subset=['agency_score'])
+    assistant_agency = agency_messages[agency_messages['message_role'] == 'assistant'].dropna(subset=['agency_score'])
+
+    if not user_agency.empty and not assistant_agency.empty:
+        user_mean_agency = user_agency['agency_score'].mean()
+        user_high_pct = (user_agency['agency_score'] >= AGENCY_POS_THRESHOLD).sum() / len(user_agency) * 100
+        assistant_mean_agency = assistant_agency['agency_score'].mean()
+        assistant_high_pct = (assistant_agency['agency_score'] >= AGENCY_POS_THRESHOLD).sum() / len(assistant_agency) * 100
+
+        insights.append(f"**Agency in Conversations:** Students demonstrate an average agency score of {user_mean_agency:.2f}, with {user_high_pct:.1f}% of messages expressing high-agency language (proactive problem-solving, decision-making, goal-setting). The AI assistant achieves an average agency score of {assistant_mean_agency:.2f}, with {assistant_high_pct:.1f}% of responses employing empowering language that encourages student initiative. This balance indicates the platform is effectively fostering student autonomy and self-directed learning, which are critical factors for long-term engagement and skill development.")
 
 for insight in insights:
     if insight:
@@ -935,23 +1290,11 @@ for insight in insights:
 
 ## Recommendations and Action Items
 
-Based on these findings and the patterns revealed throughout this analysis, we recommend the following strategic actions:
-
-**Optimize Peak Engagement Times.** The analysis reveals concentrated peak activity during specific hours of the day. The platform should schedule proactive AI interventions, content updates, and system maintenance during off-peak hours to avoid disrupting student engagement. Consider implementing notification strategies that leverage these peak activity windows to encourage timely student interaction with the AI.
-
-**Prioritize High-Impact Regions.** Since the top regions account for the majority of student interactions, development resources should be allocated to enhance content, AI responses, and user experience tailored to these high-volume geographic contexts. This focused investment will directly address where students spend most of their time and where improvements will have the greatest impact.
-
-**Maintain and Strengthen Positive Sentiment.** The predominantly positive sentiment observed in student interactions indicates a healthy engagement environment. The platform should continue monitoring sentiment trends to identify any deterioration and implement measures to sustain the current positive atmosphere. When negative sentiment is detected, root cause analysis should be conducted to address specific pain points.
-
-**Develop Topic-Specific Content and Responses.** The concentrated distribution of student discussions around specific topics provides clear guidance for content development. Create specialized learning modules, tutorial content, and AI response templates for frequently discussed topics to provide more targeted and effective support. Use topic keywords to identify areas where additional explanatory content or clarification may be beneficial.
-
-**Establish Continuous Monitoring Practices.** Regular re-analysis of student interaction data should become part of the platform's operational routine. Set up monthly or quarterly analysis runs using this pipeline to track changes in engagement patterns, sentiment trends, and topic distributions. This continuous monitoring will enable early detection of issues and opportunities for optimization.
-
-**Conduct Qualitative Validation.** While quantitative analysis provides valuable insights, conducting follow-up user interviews or focus groups with students can provide deeper context about why certain topics are frequently discussed and what aspects of the learning experience are most valuable. This qualitative feedback should inform iterative improvements to the platform and AI responses.
+...
 
 ## Next Steps
 
-To implement these recommendations and continue improving the student-AI interaction experience, the following steps should be taken in priority order. First, establish a regular analysis schedule to generate updated reports as new data becomes available, ensuring that decision-making is always based on current patterns. Second, conduct a deep dive analysis of the highest-volume regions to identify region-specific improvements that can be quickly implemented. Third, work with content developers to create specialized resources for the most frequently discussed topics. Finally, begin qualitative research through user interviews to validate the quantitative findings and gather contextual insights that numbers alone cannot provide.
+...
 
 ---
 
