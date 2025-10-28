@@ -888,19 +888,66 @@ Low-agency messages, by contrast, tend to involve passive reception, implicit re
 <details>
 <summary>**Methodology: How agency is scored (click to expand)**</summary>
 
-Every message in the dataset is scored using the BERTAgent model, a machine learning classifier specifically trained to recognize and quantify agency signals in text:
+**How BERTAgent is Created (The 7 Stages)**
 
-1. **Model training**: BERTAgent was developed by fine-tuning a transformer-based language model on a corpus of labeled conversational data where messages were annotated for agency levels. The model learned to recognize linguistic patterns, syntactic structures, and semantic cues that correlate with agentic versus passive communication.
+1. **Assemble Seed Words (ASD)**  
+   Collect agency-related terms from prior dictionaries/lists (e.g., Pietraszkiewicz, Nicolas, LIWC-derived composites), then expand stems to word forms (**xASD**). 
 
-2. **Score generation**: For each message, BERTAgent produces a continuous numerical score reflecting the degree of agency expressed. Positive scores indicate proactive, agentic language while negative scores indicate passive or low-agency communication. Scores near zero reflect neutral acknowledgments or brief responses that carry minimal agency information.
+2. **Build a Lexicographic Dataset (ALD)**  
+   Use the xASD words to pull synsets (definitions, lemmas, usage examples) from Open English WordNet—so the model sees words with context.  
 
-3. **Threshold-based categorization**: To enable summary statistics, scores are classified into three categories using established thresholds: high-agency messages (score ≥ 0.3), neutral-agency messages (score between -0.3 and 0.3), and low-agency messages (score ≤ -0.3).
+3. **Human-Rate Agency**  
+   Crowd workers rate each synset/example on a 7-point low↔high agency scale; those ratings become training targets.  
 
-4. **Message handling**: Unlike topic modeling which filters short messages, BERTAgent is designed to handle messages of all lengths, including very brief acknowledgments. The model naturally returns near-zero scores for these brief exchanges, which accurately reflect their minimal agency content.
+4. **Fine-Tune Transformer LMs (Regression)**  
+   Train BERT/RoBERTa to predict the human agency score from text snippets; compare several dataset constructions (FT0–FT3).  
 
-5. **Role-based analysis**: Agency scores are analyzed separately for user and assistant messages to understand how each participant's communication patterns contribute to the overall conversation dynamics.
+5. **Create a Gold-Standard Set (GSD)**  
+   Curate 300 sentences (balanced low/none/high agency) from prompted writings.  
 
-This approach provides nuanced insights into the motivational and empowerment dynamics of student-AI interactions, complementing the content-focused analysis provided by sentiment and topic modeling.
+6. **Human-Rate the GSD**  
+   Get ~30 ratings per sentence to obtain highly reliable ground truth.  
+
+7. **Select the Best Model**  
+   Pick the model with the lowest RMSE on the held-out GSD (RoBERTa on FT3; further improved after a negation-focused re-fine-tune **rFT3**).
+
+**Notes:**  
+They also add antonym- and negation-based data augmentation and later re-fine-tune (**rFT3**) to better handle nuanced negations, which lowers RMSE further.  
+
+**How BERTAgent Produces Individual Agent Scores**
+
+BERTAgent is packaged in Python. You pass sentences; it returns an **agency score per sentence** in the range **−1 to 1**.  
+Because of token limits, it’s sentence-first; you then aggregate to the unit you care about (message, person, day, etc.).
+
+**Clean Pipeline**
+
+1. **Prepare per-person corpora**  
+   Group all texts by individual (e.g., teacher/user).
+
+2. **Light clean-up**  
+   Normalize whitespace and sentence-split; keep punctuation (negation and emphasis matter).
+
+3. **Score sentences**  
+   Run BERTAgent on each sentence → one score in −1 to 1.  
+
+4. **Aggregate to messages**  
+   Combine sentence scores per message.  
+   - *Mean*: overall level  
+   - *Max*: bursts of strong agency  
+   - *Min*: lowest-agency clause  
+
+5. **Aggregate to the individual**  
+   Choose method(s):  
+   - Average or median agency across messages  
+   - Share of high/low agency messages
+   - Time-weighted indices (recent messages count more)  
+   - Contextual slices (topic, channel, daypart)
+
+6. **Stability checks**  
+   Require a minimum number of messages; bootstrap confidence intervals for person-level scores.
+
+7. **Audit edge cases**  
+   Negations and sarcasm are hard—spot-check samples and consider the **rFT3** model for improved negation handling.
 
 </details>
 

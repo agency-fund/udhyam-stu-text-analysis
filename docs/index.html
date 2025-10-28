@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Udhyam Analytics">
-<meta name="dcterms.date" content="2025-10-24">
+<meta name="dcterms.date" content="2025-10-28">
 
 <title>Udhyam Student Text Analysis Report</title>
 <style>
@@ -2255,7 +2255,7 @@ var requirejs,require,define;(function(global,setTimeout){var req,s,head,baseEle
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 24, 2025</p>
+      <p class="date">October 28, 2025</p>
     </div>
   </div>
   
@@ -2945,15 +2945,60 @@ Show AI topic examples
 <summary>
 <strong>Methodology: How agency is scored (click to expand)</strong>
 </summary>
-<p>Every message in the dataset is scored using the BERTAgent model, a machine learning classifier specifically trained to recognize and quantify agency signals in text:</p>
+<p><strong>How BERTAgent is Created (The 7 Stages)</strong></p>
 <ol type="1">
-<li><p><strong>Model training</strong>: BERTAgent was developed by fine-tuning a transformer-based language model on a corpus of labeled conversational data where messages were annotated for agency levels. The model learned to recognize linguistic patterns, syntactic structures, and semantic cues that correlate with agentic versus passive communication.</p></li>
-<li><p><strong>Score generation</strong>: For each message, BERTAgent produces a continuous numerical score reflecting the degree of agency expressed. Positive scores indicate proactive, agentic language while negative scores indicate passive or low-agency communication. Scores near zero reflect neutral acknowledgments or brief responses that carry minimal agency information.</p></li>
-<li><p><strong>Threshold-based categorization</strong>: To enable summary statistics, scores are classified into three categories using established thresholds: high-agency messages (score ≥ 0.3), neutral-agency messages (score between -0.3 and 0.3), and low-agency messages (score ≤ -0.3).</p></li>
-<li><p><strong>Message handling</strong>: Unlike topic modeling which filters short messages, BERTAgent is designed to handle messages of all lengths, including very brief acknowledgments. The model naturally returns near-zero scores for these brief exchanges, which accurately reflect their minimal agency content.</p></li>
-<li><p><strong>Role-based analysis</strong>: Agency scores are analyzed separately for user and assistant messages to understand how each participant’s communication patterns contribute to the overall conversation dynamics.</p></li>
+<li><p><strong>Assemble Seed Words (ASD)</strong><br>
+Collect agency-related terms from prior dictionaries/lists (e.g., Pietraszkiewicz, Nicolas, LIWC-derived composites), then expand stems to word forms (<strong>xASD</strong>).</p></li>
+<li><p><strong>Build a Lexicographic Dataset (ALD)</strong><br>
+Use the xASD words to pull synsets (definitions, lemmas, usage examples) from Open English WordNet—so the model sees words with context.</p></li>
+<li><p><strong>Human-Rate Agency</strong><br>
+Crowd workers rate each synset/example on a 7-point low↔︎high agency scale; those ratings become training targets.</p></li>
+<li><p><strong>Fine-Tune Transformer LMs (Regression)</strong><br>
+Train BERT/RoBERTa to predict the human agency score from text snippets; compare several dataset constructions (FT0–FT3).</p></li>
+<li><p><strong>Create a Gold-Standard Set (GSD)</strong><br>
+Curate 300 sentences (balanced low/none/high agency) from prompted writings.</p></li>
+<li><p><strong>Human-Rate the GSD</strong><br>
+Get ~30 ratings per sentence to obtain highly reliable ground truth.</p></li>
+<li><p><strong>Select the Best Model</strong><br>
+Pick the model with the lowest RMSE on the held-out GSD (RoBERTa on FT3; further improved after a negation-focused re-fine-tune <strong>rFT3</strong>).</p></li>
 </ol>
-<p>This approach provides nuanced insights into the motivational and empowerment dynamics of student-AI interactions, complementing the content-focused analysis provided by sentiment and topic modeling.</p>
+<p><strong>Notes:</strong><br>
+They also add antonym- and negation-based data augmentation and later re-fine-tune (<strong>rFT3</strong>) to better handle nuanced negations, which lowers RMSE further.</p>
+<p><strong>How BERTAgent Produces Individual Agent Scores</strong></p>
+<p>BERTAgent is packaged in Python. You pass sentences; it returns an <strong>agency score per sentence</strong> in the range <strong>−1 to 1</strong>.<br>
+Because of token limits, it’s sentence-first; you then aggregate to the unit you care about (message, person, day, etc.).</p>
+<p><strong>Clean Pipeline</strong></p>
+<ol type="1">
+<li><p><strong>Prepare per-person corpora</strong><br>
+Group all texts by individual (e.g., teacher/user).</p></li>
+<li><p><strong>Light clean-up</strong><br>
+Normalize whitespace and sentence-split; keep punctuation (negation and emphasis matter).</p></li>
+<li><p><strong>Score sentences</strong><br>
+Run BERTAgent on each sentence → one score in −1 to 1.</p></li>
+<li><p><strong>Aggregate to messages</strong><br>
+Combine sentence scores per message.</p>
+<ul>
+<li><em>Mean</em>: overall level<br>
+</li>
+<li><em>Max</em>: bursts of strong agency<br>
+</li>
+<li><em>Min</em>: lowest-agency clause</li>
+</ul></li>
+<li><p><strong>Aggregate to the individual</strong><br>
+Choose method(s):</p>
+<ul>
+<li>Average or median agency across messages<br>
+</li>
+<li>Share of high/low agency messages</li>
+<li>Time-weighted indices (recent messages count more)<br>
+</li>
+<li>Contextual slices (topic, channel, daypart)</li>
+</ul></li>
+<li><p><strong>Stability checks</strong><br>
+Require a minimum number of messages; bootstrap confidence intervals for person-level scores.</p></li>
+<li><p><strong>Audit edge cases</strong><br>
+Negations and sarcasm are hard—spot-check samples and consider the <strong>rFT3</strong> model for improved negation handling.</p></li>
+</ol>
 </details>
 <details>
 <summary>
@@ -3456,7 +3501,7 @@ Table 10: Neutral Agency Assistant Messages
 <h2 class="anchored" data-anchor-id="next-steps">Next Steps</h2>
 <p>…</p>
 <hr>
-<p><strong>Report generated:</strong> October 24, 2025</p>
+<p><strong>Report generated:</strong> October 28, 2025</p>
 <p><strong>Analysis period:</strong> 2025-09-02T13:59:14 to 2025-10-08T20:13:54</p>
 <p><strong>Total messages analyzed:</strong> 8,589</p>
 </section>
